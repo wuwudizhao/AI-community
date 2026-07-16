@@ -1,0 +1,30 @@
+{
+  "name": "liftoff",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Liftoff community monorepo",
+  "packageManager": "pnpm@11.12.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @liftoff/web --filter @liftoff/api dev",
+    "dev:web": "corepack pnpm --filter @liftoff/web dev",
+    "dev:api": "corepack pnpm --filter @liftoff/api dev",
+    "build": "corepack pnpm -r --if-present build",
+    "lint": "corepack pnpm -r --if-present lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "corepack pnpm -r --if-present typecheck",
+    "test": "corepack pnpm -r --if-present test",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:generate": "corepack pnpm --filter @liftoff/api prisma:generate",
+    "db:migrate": "corepack pnpm --filter @liftoff/api prisma:migrate",
+    "db:validate": "corepack pnpm --filter @liftoff/api prisma:validate"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

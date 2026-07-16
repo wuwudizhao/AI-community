@@ -1,0 +1,244 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SystemProbe {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("system_probes")
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_VERIFICATION
+  SUSPENDED
+  BANNED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PostCategory {
+  MONEY_OPPORTUNITY
+  PROJECT_BREAKDOWN
+  TUTORIAL_PRACTICE
+  FAILURE_REVIEW
+  SOLO_COMPANY
+  VIBE_CODING
+  AGENT
+  RAG
+  MCP
+  FDE
+  OPC_METHODOLOGY
+  TOOLS_RESOURCES
+}
+
+enum CommentStatus {
+  PUBLISHED
+  DELETED
+  HIDDEN
+}
+
+enum NotificationType {
+  POST_COMMENTED
+  COMMENT_REPLIED
+  SYSTEM
+}
+
+model User {
+  id                 String                   @id @default(cuid())
+  email              String
+  emailNormalized    String                   @unique @map("email_normalized")
+  passwordHash       String                   @map("password_hash")
+  username           String                   @unique
+  displayName        String                   @map("display_name")
+  bio                String?
+  role               UserRole                 @default(USER)
+  status             UserStatus               @default(PENDING_VERIFICATION)
+  emailVerifiedAt    DateTime?                @map("email_verified_at")
+  lastLoginAt        DateTime?                @map("last_login_at")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+  verificationTokens EmailVerificationToken[]
+  sessions           UserSession[]
+  posts              Post[]                   @relation("UserPosts")
+  comments           Comment[]                @relation("CommentAuthor")
+  repliesToUser      Comment[]                @relation("CommentReplyToUser")
+  deletedComments    Comment[]                @relation("CommentDeletedBy")
+  notifications      Notification[]           @relation("NotificationRecipient")
+  notificationActors Notification[]           @relation("NotificationActor")
+  postImages         PostImage[]              @relation("UserPostImages")
+
+  @@map("users")
+}
+
+model Post {
+  id                String             @id @default(cuid())
+  title             String
+  slug              String             @unique
+  contentMarkdown   String             @map("content_markdown")
+  authorId          String?            @map("author_id")
+  anonymousAuthorId String?            @map("anonymous_author_id")
+  category          PostCategory
+  status            PostStatus         @default(PUBLISHED)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  publishedAt       DateTime?          @map("published_at")
+  author            User?              @relation("UserPosts", fields: [authorId], references: [id], onDelete: Restrict)
+  anonymousAuthor   AnonymousIdentity? @relation("AnonymousPosts", fields: [anonymousAuthorId], references: [id], onDelete: Restrict)
+  tags              PostTag[]
+  comments          Comment[]
+  notifications     Notification[]
+  images            PostImage[]
+
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([category, status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([anonymousAuthorId, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model AnonymousIdentity {
+  id          String      @id @default(cuid())
+  tokenHash   String      @unique @map("token_hash")
+  displayName String      @default("Liftoff 访客") @map("display_name")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  lastSeenAt  DateTime    @updatedAt @map("last_seen_at")
+  posts       Post[]      @relation("AnonymousPosts")
+  postImages  PostImage[] @relation("AnonymousPostImages")
+
+  @@map("anonymous_identities")
+}
+
+model PostImage {
+  id                  String             @id @default(cuid())
+  storageKey          String             @unique @map("storage_key")
+  mimeType            String             @map("mime_type")
+  sizeBytes           Int                @map("size_bytes")
+  width               Int
+  height              Int
+  uploaderUserId      String?            @map("uploader_user_id")
+  anonymousIdentityId String?            @map("anonymous_identity_id")
+  postId              String?            @map("post_id")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  uploaderUser        User?              @relation("UserPostImages", fields: [uploaderUserId], references: [id], onDelete: Cascade)
+  anonymousIdentity   AnonymousIdentity? @relation("AnonymousPostImages", fields: [anonymousIdentityId], references: [id], onDelete: Cascade)
+  post                Post?              @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([uploaderUserId, createdAt])
+  @@index([anonymousIdentityId, createdAt])
+  @@index([postId])
+  @@map("post_images")
+}
+
+model Comment {
+  id            String         @id @default(cuid())
+  postId        String         @map("post_id")
+  authorId      String         @map("author_id")
+  parentId      String?        @map("parent_id")
+  replyToUserId String?        @map("reply_to_user_id")
+  content       String
+  status        CommentStatus  @default(PUBLISHED)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+  deletedById   String?        @map("deleted_by_id")
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User           @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  parent        Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies       Comment[]      @relation("CommentReplies")
+  replyToUser   User?          @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: Restrict)
+  deletedBy     User?          @relation("CommentDeletedBy", fields: [deletedById], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([parentId, createdAt])
+  @@index([status])
+  @@map("comments")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String           @map("recipient_id")
+  actorId     String?          @map("actor_id")
+  type        NotificationType
+  postId      String?          @map("post_id")
+  commentId   String?          @map("comment_id")
+  data        Json?
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment     Comment?         @relation(fields: [commentId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt(sort: Desc)])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([postId])
+  @@index([commentId])
+  @@map("notifications")
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  posts     PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String @map("post_id")
+  tagId  String @map("tag_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("email_verification_tokens")
+}
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("user_sessions")
+}

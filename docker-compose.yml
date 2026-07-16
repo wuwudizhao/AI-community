@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: liftoff-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-liftoff}
+      POSTGRES_USER: ${POSTGRES_USER:-liftoff}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-liftoff_local_only}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - liftoff-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-liftoff} -d ${POSTGRES_DB:-liftoff}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  liftoff-postgres-data:

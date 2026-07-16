@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  argon2: true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  prisma: true
+  sharp: true
+  unrs-resolver: true
