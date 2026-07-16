@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { AuthProvider } from '@/components/auth-provider';
 import { FeatureFlagsProvider } from '@/components/feature-flags-provider';
+import { webEnvironment } from '@/lib/environment';
 
 const themeInitializationScript = `
 (function () {
@@ -21,7 +22,7 @@ const themeInitializationScript = `
 })();`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL(webEnvironment.siteUrl),
   title: { default: 'Liftoff · AI 创业与副业社区', template: '%s · Liftoff' },
   description: '发现 AI 赚钱机会、验证项目、分享收入案例与失败复盘的实战社区。',
   openGraph: {

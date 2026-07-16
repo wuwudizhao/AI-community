@@ -5,11 +5,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
+import { API_LISTEN_HOST, resolveApiPort } from './server-config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
-  const port = config.getOrThrow<number>('API_PORT');
+  const port = resolveApiPort(config);
   const webOrigin = config.getOrThrow<string>('WEB_ORIGIN');
 
   app.setGlobalPrefix('api');
@@ -25,8 +26,8 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerConfig));
 
-  await app.listen(port);
-  Logger.log(`Liftoff API listening on http://localhost:${port}/api`, 'Bootstrap');
+  await app.listen(port, API_LISTEN_HOST);
+  Logger.log(`Liftoff API listening on ${API_LISTEN_HOST}:${port}/api`, 'Bootstrap');
 }
 
 void bootstrap();
