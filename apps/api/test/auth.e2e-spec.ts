@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
-import { hashSecret } from '../src/auth/auth.crypto';
+import { hashPassword, hashSecret } from '../src/auth/auth.crypto';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { cleanTestUsers } from './e2e-cleanup';
 
@@ -41,11 +41,16 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
       .send({ email: 'bad', password: 'weak' })
       .expect(400));
 
-  it('registers a pending user and returns a development mail preview', async () => {
+  it('registers an active user without creating an email verification token', async () => {
     const response = await register(email, username);
     expect(response.status).toBe(201);
-    expect(response.body.developmentPreviewUrl).toContain('/verify-email?token=');
+    expect(response.body).toEqual({ message: '注册成功，现在可以登录' });
     expect(response.body).not.toHaveProperty('passwordHash');
+    expect(response.body).not.toHaveProperty('developmentPreviewUrl');
+    const user = await prisma.user.findUniqueOrThrow({ where: { emailNormalized: email } });
+    expect(user.status).toBe('ACTIVE');
+    expect(user.emailVerifiedAt).not.toBeNull();
+    expect(await prisma.emailVerificationToken.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it('rejects duplicate email and duplicate username', async () => {
@@ -53,32 +58,44 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
     await register('other@example.com', username, 409);
   });
 
-  it('does not allow an unverified user to login', () =>
-    request(app.getHttpServer()).post('/api/auth/login').send({ email, password }).expect(403));
+  it('does not allow a legacy unverified user to login', async () => {
+    await prisma.user.update({
+      where: { emailNormalized: email },
+      data: { status: 'PENDING_VERIFICATION', emailVerifiedAt: null },
+    });
+    await request(app.getHttpServer()).post('/api/auth/login').send({ email, password }).expect(403);
+    await prisma.user.update({
+      where: { emailNormalized: email },
+      data: { status: 'ACTIVE', emailVerifiedAt: new Date() },
+    });
+  });
 
   it('rejects an expired verification token', async () => {
-    const response = await register('expired@example.com', 'expireduser');
-    const token = tokenFromPreview(response.body.developmentPreviewUrl as string);
-    await prisma.emailVerificationToken.update({
-      where: { tokenHash: hashSecret(token) },
-      data: { expiresAt: new Date(0) },
+    const expiredEmail = 'expired@example.com';
+    const token = 'expired-verification-token-that-is-long-enough';
+    const user = await createPendingUser(expiredEmail, 'expireduser');
+    await prisma.emailVerificationToken.create({
+      data: { userId: user.id, tokenHash: hashSecret(token), expiresAt: new Date(0) },
     });
     await request(app.getHttpServer()).post('/api/auth/verify-email').send({ token }).expect(400);
   });
 
-  it('verifies email and rejects token reuse', async () => {
-    const user = await prisma.user.findUniqueOrThrow({ where: { emailNormalized: email } });
-    const record = await prisma.emailVerificationToken.findFirstOrThrow({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
+  it('keeps legacy email verification and token reuse protection available', async () => {
+    const verificationEmail = 'other@example.com';
+    const user = await createPendingUser(verificationEmail, 'verificationuser');
+    const record = await prisma.emailVerificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashSecret('initial-verification-token-that-is-long-enough'),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
     });
     // The raw token is only available from the development preview, so request a new one for this test.
     const resend = await request(app.getHttpServer())
       .post('/api/auth/resend-verification')
-      .send({ email })
+      .send({ email: verificationEmail })
       .expect(200);
     const token = tokenFromPreview(resend.body.developmentPreviewUrl as string);
-    expect(record.tokenHash).not.toBe(token);
     expect(
       (await prisma.emailVerificationToken.findUniqueOrThrow({ where: { id: record.id } })).usedAt,
     ).not.toBeNull();
@@ -86,7 +103,7 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
     await request(app.getHttpServer()).post('/api/auth/verify-email').send({ token }).expect(400);
     const verifiedResend = await request(app.getHttpServer())
       .post('/api/auth/resend-verification')
-      .send({ email })
+      .send({ email: verificationEmail })
       .expect(200);
     expect(verifiedResend.body).not.toHaveProperty('developmentPreviewUrl');
   });
@@ -132,6 +149,20 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
         password,
       })
       .expect(expected);
+  }
+
+  async function createPendingUser(targetEmail: string, targetUsername: string) {
+    return prisma.user.create({
+      data: {
+        email: targetEmail,
+        emailNormalized: targetEmail.toLowerCase(),
+        passwordHash: await hashPassword(password),
+        username: targetUsername,
+        displayName: 'Legacy Pending User',
+        status: 'PENDING_VERIFICATION',
+        emailVerifiedAt: null,
+      },
+    });
   }
 });
 

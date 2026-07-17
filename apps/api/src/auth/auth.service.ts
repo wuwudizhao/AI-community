@@ -45,36 +45,22 @@ export class AuthService {
   async register(input: RegisterDto) {
     const emailNormalized = normalizeEmail(input.email);
     const passwordHash = await hashPassword(input.password);
-    const token = createSecret();
-    const expiresInMinutes = this.config.getOrThrow<number>('EMAIL_VERIFICATION_TTL_MINUTES');
-    const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000);
 
     try {
-      const user = await this.prisma.user.create({
+      await this.prisma.user.create({
         data: {
           email: input.email.trim(),
           emailNormalized,
           passwordHash,
           username: input.username,
           displayName: input.displayName.trim(),
-          verificationTokens: { create: { tokenHash: hashSecret(token), expiresAt } },
+          status: 'ACTIVE',
+          emailVerifiedAt: new Date(),
         },
-      });
-      const verificationUrl = buildVerificationUrl(
-        this.config.getOrThrow<string>('WEB_BASE_URL'),
-        token,
-      );
-      const delivery = await this.mail.sendVerification({
-        to: user.email,
-        displayName: user.displayName,
-        verificationUrl,
-        expiresInMinutes,
       });
 
       return {
-        message: '注册成功，请检查邮箱完成验证',
-        emailMasked: maskEmail(user.email),
-        ...delivery,
+        message: '注册成功，现在可以登录',
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -223,11 +209,6 @@ function toPublicUser(user: User): PublicUser {
     status: user.status,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
   };
-}
-
-function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  return `${local.slice(0, 2)}***@${domain}`;
 }
 
 function genericResend() {

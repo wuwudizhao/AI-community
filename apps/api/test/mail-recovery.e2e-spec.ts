@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { ServiceUnavailableException, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
@@ -13,12 +13,10 @@ describe('Mail failure recovery (e2e, PostgreSQL)', () => {
   let app: Awaited<ReturnType<typeof createApp>>;
   let attempts = 0;
   const testEmails = ['mail-recovery@example.test'] as const;
-  const flakyMail: MailService = {
+  const mailSpy: MailService = {
     sendVerification() {
       attempts += 1;
-      return attempts === 1
-        ? Promise.reject(new ServiceUnavailableException('controlled failure'))
-        : Promise.resolve({});
+      return Promise.resolve({});
     },
   };
 
@@ -32,7 +30,7 @@ describe('Mail failure recovery (e2e, PostgreSQL)', () => {
       SESSION_TTL_HOURS: '168',
       EMAIL_VERIFICATION_TTL_MINUTES: '60',
     });
-    app = await createApp(flakyMail);
+    app = await createApp(mailSpy);
     prisma = app.get(PrismaService);
     await cleanTestUsers(prisma, testEmails);
   });
@@ -41,7 +39,7 @@ describe('Mail failure recovery (e2e, PostgreSQL)', () => {
     await app.close();
   });
 
-  it('keeps the pending account and recovers through resend after initial delivery failure', async () => {
+  it('registers an active account without invoking the configured mail service', async () => {
     const email = 'mail-recovery@example.test';
     await request(app.getHttpServer())
       .post('/api/auth/register')
@@ -51,20 +49,15 @@ describe('Mail failure recovery (e2e, PostgreSQL)', () => {
         displayName: 'Mail Recovery',
         password: 'StrongPass123',
       })
-      .expect(503);
+      .expect(201);
     const user = await prisma.user.findUniqueOrThrow({ where: { emailNormalized: email } });
-    expect(user.status).toBe('PENDING_VERIFICATION');
-    await request(app.getHttpServer())
-      .post('/api/auth/resend-verification')
-      .send({ email })
-      .expect(200);
+    expect(user.status).toBe('ACTIVE');
+    expect(user.emailVerifiedAt).not.toBeNull();
+    expect(attempts).toBe(0);
     const tokens = await prisma.emailVerificationToken.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
     });
-    expect(tokens).toHaveLength(2);
-    expect(tokens[0].usedAt).not.toBeNull();
-    expect(tokens[1].usedAt).toBeNull();
+    expect(tokens).toHaveLength(0);
   });
 });
 

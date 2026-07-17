@@ -20,22 +20,16 @@ export default function RegisterPage() {
     if (password !== String(form.get('confirmPassword'))) return setError('两次输入的密码不一致');
     setBusy(true);
     try {
-      const result = await apiRequest<{ emailMasked: string; developmentPreviewUrl?: string }>(
-        '/auth/register',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: form.get('email'),
-            username: form.get('username'),
-            displayName: form.get('displayName'),
-            password,
-          }),
-        },
-      );
-      sessionStorage.setItem('liftoff-pending-email', String(form.get('email')));
-      if (result.developmentPreviewUrl)
-        sessionStorage.setItem('liftoff-development-preview', result.developmentPreviewUrl);
-      router.push(`/verify-email/pending?email=${encodeURIComponent(result.emailMasked)}`);
+      await apiRequest('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: form.get('email'),
+          username: form.get('username'),
+          displayName: form.get('displayName'),
+          password,
+        }),
+      });
+      router.push('/login');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '注册失败');
     } finally {
@@ -44,7 +38,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthShell title="创建真实身份" description="使用邮箱注册 Liftoff，验证完成后即可登录。">
+    <AuthShell title="创建真实身份" description="使用邮箱注册 Liftoff，注册完成后即可登录。">
       <form
         className="auth-form"
         onSubmit={submit}
