@@ -11,6 +11,7 @@ import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PostImagesModule } from './post-images/post-images.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PostImagesModule } from './post-images/post-images.module';
     CommentsModule,
     NotificationsModule,
     PostImagesModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

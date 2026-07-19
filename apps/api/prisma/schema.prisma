@@ -96,6 +96,7 @@ model Post {
   anonymousAuthorId String?            @map("anonymous_author_id")
   category          PostCategory
   status            PostStatus         @default(PUBLISHED)
+  pinned            Boolean            @default(false)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
   publishedAt       DateTime?          @map("published_at")
@@ -106,7 +107,7 @@ model Post {
   notifications     Notification[]
   images            PostImage[]
 
-  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([status, pinned(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
   @@index([category, status, createdAt(sort: Desc), id(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([anonymousAuthorId, createdAt(sort: Desc)])

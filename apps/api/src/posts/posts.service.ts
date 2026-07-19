@@ -120,7 +120,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where,
         include: publicInclude,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
       }),
@@ -207,6 +207,7 @@ function mapPost(post: IncludedPost, summary: boolean) {
     category: { key: category.key, label: category.label },
     tags: post.tags.map(({ tag }) => ({ id: tag.id, name: tag.name, slug: tag.slug })),
     status: post.status,
+    pinned: post.pinned,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     publishedAt: post.publishedAt?.toISOString() ?? null,
