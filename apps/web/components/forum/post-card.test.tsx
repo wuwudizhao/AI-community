@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PostSummary } from '@/lib/posts';
 import { FORUM_CATEGORIES } from '@/lib/forum-categories';
 import { PostCard } from './post-card';
+import { PostList } from './post-list';
 
 const post: PostSummary = {
   id: 'post-1',
@@ -13,6 +14,7 @@ const post: PostSummary = {
   author: { type: 'user', id: 'user-1', username: 'builder', displayName: 'Builder', bio: null },
   tags: [{ id: 'tag-1', name: '项目验证', slug: 'validation' }],
   status: 'PUBLISHED',
+  pinned: false,
   createdAt: '2026-07-14T00:00:00.000Z',
   updatedAt: '2026-07-14T00:00:00.000Z',
   publishedAt: '2026-07-14T00:00:00.000Z',
@@ -20,6 +22,34 @@ const post: PostSummary = {
 };
 
 describe('PostCard', () => {
+  it('shows a compact badge for a pinned post', () => {
+    render(<PostCard post={{ ...post, pinned: true }} />);
+
+    expect(screen.getByText('置顶')).toBeInTheDocument();
+  });
+
+  it('does not show the pinned badge for a regular post', () => {
+    render(<PostCard post={{ ...post, pinned: false }} />);
+
+    expect(screen.queryByText('置顶')).not.toBeInTheDocument();
+  });
+
+  it('keeps the existing server-provided order when rendering multiple posts', () => {
+    const { container } = render(
+      <PostList
+        posts={[
+          { ...post, id: 'pinned', slug: 'pinned', title: '置顶帖子', pinned: true },
+          { ...post, id: 'regular', slug: 'regular', title: '普通帖子', pinned: false },
+        ]}
+      />,
+    );
+
+    expect(Array.from(container.querySelectorAll('h2'), (heading) => heading.textContent)).toEqual([
+      '置顶帖子',
+      '普通帖子',
+    ]);
+  });
+
   it('renders only real post fields in the horizontal feed row', () => {
     const { container } = render(<PostCard post={post} />);
 

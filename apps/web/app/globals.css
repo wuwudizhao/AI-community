@@ -4368,6 +4368,30 @@ a {
   line-height: 1.4;
 }
 
+.forum-post-card__title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.forum-post-card__title-row h2 {
+  min-width: 0;
+}
+
+.forum-post-card__pinned {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, #6d3de8 30%, var(--border));
+  border-radius: 5px;
+  color: #6d3de8;
+  background: color-mix(in srgb, #6d3de8 8%, var(--surface));
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .forum-post-card__body > p {
   display: -webkit-box;
   overflow: hidden;

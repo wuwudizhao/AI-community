@@ -29,6 +29,7 @@ export interface PostSummary {
   category: PostCategorySummary;
   tags: PostTag[];
   status: 'DRAFT' | 'PUBLISHED';
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;

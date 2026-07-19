@@ -41,7 +41,10 @@ export function PostCard({ post }: { post: PostSummary }) {
             <TagBadge key={tag.id}>{tag.name}</TagBadge>
           ))}
         </div>
-        <h2>{post.title}</h2>
+        <div className="forum-post-card__title-row">
+          <h2>{post.title}</h2>
+          {post.pinned && <span className="forum-post-card__pinned">置顶</span>}
+        </div>
         <p>{post.excerpt}</p>
         <footer>
           <AuthorBadge
