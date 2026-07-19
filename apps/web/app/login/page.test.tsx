@@ -4,17 +4,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './page';
 
 const refresh = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 vi.mock('@/components/auth-provider', () => ({ useAuth: () => ({ refresh }) }));
 
 describe('LoginPage', () => {
-  beforeEach(() =>
+  beforeEach(() => {
+    push.mockReset();
+    refresh.mockReset();
+    window.history.replaceState({}, '', '/login');
     vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 403,
       json: async () => ({ message: '请先完成邮箱验证' }),
-    } as Response),
-  );
+    } as Response);
+  });
 
   it('shows API errors and an unverified-email action', async () => {
     render(<LoginPage />);
@@ -23,5 +27,26 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '登录' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('请先完成邮箱验证'));
     expect(screen.getByRole('link', { name: '重新发送验证邮件' })).toBeInTheDocument();
+  });
+
+  it('returns to /admin after a successful redirected login', async () => {
+    window.history.replaceState({}, '', '/login?redirect=/admin');
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ user: { id: 'admin' } }),
+    } as Response);
+    refresh.mockResolvedValue(undefined);
+
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText('邮箱'), {
+      target: { value: 'admin@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('密码'), {
+      target: { value: 'StrongPass123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '登录' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/admin'));
   });
 });

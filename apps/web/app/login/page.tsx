@@ -27,7 +27,9 @@ export default function LoginPage() {
         body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
       });
       await refresh();
-      router.push('/');
+      router.push(
+        resolveLoginRedirect(new URLSearchParams(window.location.search).get('redirect')),
+      );
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : '登录失败';
       setError(message);
@@ -77,4 +79,9 @@ export default function LoginPage() {
       </p>
     </AuthShell>
   );
+}
+
+export function resolveLoginRedirect(redirect: string | null): string {
+  if (!redirect || !redirect.startsWith('/') || redirect.startsWith('//')) return '/';
+  return redirect;
 }

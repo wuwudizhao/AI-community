@@ -2,8 +2,8 @@
 
 import { FileText, LayoutDashboard, LogOut, Users } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, type ReactNode } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
 
@@ -15,20 +15,29 @@ const navigation = [
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) router.replace(`/login?redirect=${pathname}`);
+  }, [loading, pathname, router, user]);
 
   if (loading) {
     return <main className="admin-access-state">正在验证管理员权限…</main>;
   }
 
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
+    return <main className="admin-access-state">正在跳转登录页…</main>;
+  }
+
+  if (user.role !== 'ADMIN') {
     return (
       <main className="admin-access-state">
         <div className="admin-access-card">
           <span className="admin-eyebrow">403 · Forbidden</span>
           <h1>无权访问管理后台</h1>
-          <p>{user ? '当前账号不是管理员。' : '请先登录管理员账号。'}</p>
-          <Link href={user ? '/' : '/login'}>{user ? '返回社区' : '前往登录'}</Link>
+          <p>当前账号不是管理员。</p>
+          <Link href="/">返回社区</Link>
         </div>
       </main>
     );
