@@ -86,7 +86,7 @@ export function CommentSection({ slug }: { slug: string }) {
   }
 
   return (
-    <section className="comment-section" aria-labelledby="comments-heading">
+    <section id="comments" className="comment-section" aria-labelledby="comments-heading">
       <div className="comment-section__heading">
         <div>
           <span>Discussion</span>
@@ -128,7 +128,7 @@ export function CommentSection({ slug }: { slug: string }) {
       {data?.items.length === 0 && (
         <div className="comment-empty">
           <strong>还没有评论</strong>
-          <p>来发表第一条真实讨论吧。</p>
+          <p>成为第一个参与讨论的人吧。</p>
         </div>
       )}
 
@@ -284,7 +284,7 @@ function CommentForm({
           required
           maxLength={5000}
           rows={compact ? 3 : 5}
-          placeholder={compact ? '写下回复…' : '写下评论…'}
+          placeholder={compact ? '写下回复…' : '写下你的看法…'}
         />
         <div className="comment-form__footer">
           <span>请分享真实、可验证的经验。</span>

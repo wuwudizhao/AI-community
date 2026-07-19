@@ -39,14 +39,14 @@ describe('PostDetailShell', () => {
     render(<PostDetailShell post={post} />);
 
     expect(screen.getAllByRole('heading', { name: post.title })).toHaveLength(1);
-    expect(screen.getByText('#Vibe Coding')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Vibe Coding' })).toHaveAttribute(
       'href',
       '/categories/vibe-coding',
     );
     expect(screen.getAllByText('Builder').length).toBeGreaterThan(0);
     expect(screen.getAllByText('@builder').length).toBeGreaterThan(0);
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '评论 3' })).toHaveAttribute('href', '#comments');
+    expect(screen.getByRole('button', { name: '分享' })).toBeInTheDocument();
     expect(screen.getByTestId('comments')).toHaveTextContent(post.slug);
   });
 
@@ -80,7 +80,7 @@ describe('PostDetailShell', () => {
     expect(screen.queryByRole('button', { name: '删除帖子' })).not.toBeInTheDocument();
     rerender(<PostDetailShell post={{ ...post, canDelete: true }} />);
     const button = screen.getByRole('button', { name: '删除帖子' });
-    expect(button.closest('aside')).toBeInTheDocument();
-    expect(button.closest('article')).toBeNull();
+    expect(button.closest('details')).toBeInTheDocument();
+    expect(button.closest('article')).toBeInTheDocument();
   });
 });

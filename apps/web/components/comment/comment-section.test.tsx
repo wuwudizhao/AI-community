@@ -98,7 +98,7 @@ describe('CommentSection', () => {
     user = { id: 'a', role: 'USER', username: 'a', displayName: '用户 A' };
     apiRequest.mockResolvedValueOnce(page).mockResolvedValueOnce({}).mockResolvedValueOnce(page);
     render(<CommentSection slug="hello" />);
-    const input = await screen.findByPlaceholderText('写下评论…');
+    const input = await screen.findByPlaceholderText('写下你的看法…');
     fireEvent.change(input, { target: { value: '新的评论' } });
     fireEvent.click(screen.getByRole('button', { name: '发表评论' }));
     await waitFor(() =>
@@ -114,7 +114,7 @@ describe('CommentSection', () => {
     apiRequest.mockResolvedValueOnce(page).mockRejectedValueOnce(new Error('down'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<CommentSection slug="hello" />);
-    const input = await screen.findByPlaceholderText('写下评论…');
+    const input = await screen.findByPlaceholderText('写下你的看法…');
     fireEvent.change(input, { target: { value: '保留我' } });
     fireEvent.click(screen.getByRole('button', { name: '发表评论' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('评论暂时无法处理');

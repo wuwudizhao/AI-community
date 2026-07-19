@@ -10,7 +10,7 @@ export function PostDetailShell({ post }: { post: PostDetail }) {
     <div className="post-detail-frame">
       <div className="post-detail-grid">
         <div className="post-detail-main">
-          <PostBreadcrumb />
+          <PostBreadcrumb post={post} />
           <article className="post-article">
             <PostHeader post={post} />
             <PostContent title={post.title}>{post.contentMarkdown}</PostContent>
