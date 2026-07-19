@@ -13,16 +13,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/posts/new',
   useSearchParams: () => new URLSearchParams(tag ? `tag=${encodeURIComponent(tag)}` : ''),
 }));
-vi.mock('@/components/auth-provider', () => ({
-  useAuth: () => authState,
-}));
+vi.mock('@/components/auth-provider', () => ({ useAuth: () => authState }));
 vi.mock('@/components/feature-flags-provider', () => ({
   useFeatureFlags: () => ({ allowGuestPosting }),
 }));
 vi.mock('@/components/layout/forum-header', () => ({ ForumHeader: () => null }));
-vi.mock('@/components/layout/forum-shell', () => ({
-  ForumShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
 
 describe('New post page', () => {
   beforeEach(() => {
@@ -35,6 +30,7 @@ describe('New post page', () => {
     push.mockReset();
     replace.mockReset();
     vi.mocked(fetch).mockReset();
+    window.localStorage.clear();
   });
 
   it('pre-fills the released opportunity tag and gives optional writing guidance', () => {
@@ -47,71 +43,76 @@ describe('New post page', () => {
     expect(screen.getByRole('button', { name: '发布赚钱机会' })).toBeInTheDocument();
   });
 
-  it('keeps the ordinary publishing form unchanged without the opportunity tag', () => {
+  it('shows the immersive writing canvas and formatting toolbar', () => {
     render(<NewPostPage />);
 
     expect(screen.getByRole('heading', { name: '发布帖子' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('赚钱机会写作提示')).not.toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: '标签' })).toHaveValue('');
-    expect(screen.getByRole('button', { name: '发布帖子' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(12);
-    expect(screen.queryByRole('button', { name: '副业项目' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '收入案例' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '首页' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '最新' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '发布帖子' })).toBeDisabled();
-    expect(screen.getByText('请选择帖子所属分类')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: '标题' })).not.toBeInTheDocument();
-    expect(screen.getByText('第一行将作为帖子标题')).toBeInTheDocument();
+    expect(screen.getByRole('toolbar', { name: '正文格式工具' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '加粗' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '标题' })).toHaveAttribute(
+      'placeholder',
+      '请输入标题（3–160 字）',
+    );
     expect(screen.getByRole('textbox', { name: '正文' })).toHaveAttribute(
       'placeholder',
-      '第一行填写帖子标题\n\n从第二行开始填写正文内容，可以直接粘贴或上传图片……',
+      '从这里开始分享你的经验、问题或新发现……',
     );
-    expect(screen.getByText('请在正文第一行填写帖子标题')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '发布到' })).toHaveValue('');
+    expect(screen.getByText('原创内容')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '发布帖子' })).toBeDisabled();
   });
 
-  it('selects exactly one category and exposes the selected state', () => {
+  it('selects one category and enables publishing after title and body are valid', () => {
     render(<NewPostPage />);
-    const agent = screen.getByRole('button', { name: 'Agent' });
-    const rag = screen.getByRole('button', { name: 'RAG' });
-    fireEvent.click(agent);
-    expect(agent).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(rag);
-    expect(agent).toHaveAttribute('aria-pressed', 'false');
-    expect(rag).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '发布帖子' })).toBeDisabled();
-    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
-      target: { value: '分类单选标题\n\n正文内容' },
+    const category = screen.getByRole('combobox', { name: '发布到' });
+
+    fireEvent.change(category, { target: { value: 'AGENT' } });
+    expect(category).toHaveValue('AGENT');
+    fireEvent.change(category, { target: { value: 'RAG' } });
+    expect(category).toHaveValue('RAG');
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
+      target: { value: '分类单选标题' },
     });
+    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
+      target: { value: '正文内容' },
+    });
+
     expect(screen.getByRole('button', { name: '发布帖子' })).toBeEnabled();
   });
 
-  it('previews the normalized first-line title without adding an editable title field', () => {
+  it('applies Markdown formatting from the toolbar to the body selection', () => {
     render(<NewPostPage />);
-    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
-      target: { value: '## 自动提取的标题\n\n正文内容' },
-    });
-    expect(screen.getByText('自动提取的标题')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: '标题' })).not.toBeInTheDocument();
+    const body = screen.getByRole('textbox', { name: '正文' }) as HTMLTextAreaElement;
+    fireEvent.change(body, { target: { value: '需要强调' } });
+    body.setSelectionRange(0, 4);
+
+    fireEvent.click(screen.getByRole('button', { name: '加粗' }));
+
+    expect(body).toHaveValue('**需要强调**');
   });
 
-  it('does not accept image Markdown as the first-line title', () => {
+  it('does not accept image Markdown as the title', () => {
     render(<NewPostPage />);
-    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
-      target: { value: '![图片](https://example.com/a.png)\n\n正文内容' },
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
+      target: { value: '![图片](https://example.com/a.png)' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Agent' }));
-    expect(screen.getByText('请在正文第一行填写帖子标题')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
+      target: { value: '正文内容' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: '发布到' }), {
+      target: { value: 'AGENT' },
+    });
+
     expect(screen.getByRole('button', { name: '发布帖子' })).toBeDisabled();
   });
 
-  it('asks for a title before uploading instead of inserting an image as the title', async () => {
+  it('asks for a title before uploading an image', async () => {
     render(<NewPostPage />);
     const file = new File(['png'], 'example.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('选择图片'), { target: { files: [file] } });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '请先在正文第一行填写帖子标题，再上传图片',
+      '请先填写一个有效的帖子标题，再上传图片',
     );
     expect(screen.getByRole('textbox', { name: '正文' })).toHaveValue('');
     expect(fetch).not.toHaveBeenCalled();
@@ -144,20 +145,16 @@ describe('New post page', () => {
       }),
     } as Response);
     render(<NewPostPage />);
-
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
+      target: { value: '图文帖子标题' },
+    });
     const body = screen.getByRole('textbox', { name: '正文' }) as HTMLTextAreaElement;
-    fireEvent.change(body, { target: { value: '图文帖子标题' } });
     body.setSelectionRange(0, 0);
-
     const file = new File(['png'], 'example.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('选择图片'), { target: { files: [file] } });
 
-    await waitFor(() =>
-      expect(
-        (screen.getByRole('textbox', { name: '正文' }) as HTMLTextAreaElement).value,
-      ).toContain('/api/post-images/cmrpostimage000000000001'),
-    );
-    expect(body.value.split('\n')[0]).toBe('图文帖子标题');
+    await waitFor(() => expect(body.value).toContain('/api/post-images/cmrpostimage000000000001'));
+    expect(screen.getByRole('textbox', { name: '标题' })).toHaveValue('图文帖子标题');
     expect(screen.getByAltText('已上传图片 1')).toBeInTheDocument();
     const uploadCall = vi.mocked(fetch).mock.calls[0];
     expect(String(uploadCall[0])).toContain('/post-images');
@@ -168,7 +165,7 @@ describe('New post page', () => {
 
   it('rejects oversized images before sending a request', async () => {
     render(<NewPostPage />);
-    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
       target: { value: '大图校验标题' },
     });
     const file = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'large.png', {
@@ -180,7 +177,7 @@ describe('New post page', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('lets a guest open, fill and submit the form without redirecting to login', async () => {
+  it('lets a guest fill and submit the form without redirecting to login', async () => {
     authState = { user: null, loading: false };
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
@@ -193,20 +190,21 @@ describe('New post page', () => {
     expect(
       screen.getByText('当前支持免注册发帖。注册账号后可在后续管理自己的内容。'),
     ).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
+      target: { value: '游客发布标题' },
+    });
     fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
-      target: { value: '游客发布标题\n\n游客发布正文' },
+      target: { value: '游客发布正文' },
     });
     fireEvent.change(screen.getByRole('textbox', { name: '标签' }), {
       target: { value: '游客,讨论' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Agent' }));
+    fireEvent.change(screen.getByRole('combobox', { name: '发布到' }), {
+      target: { value: 'AGENT' },
+    });
     fireEvent.click(screen.getByRole('button', { name: '发布帖子' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/posts/guest-post'));
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/posts'),
-      expect.objectContaining({ method: 'POST' }),
-    );
     const request = vi.mocked(fetch).mock.calls.find(([url]) => String(url).includes('/posts'));
     expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({
       category: 'AGENT',
@@ -242,10 +240,13 @@ describe('New post page', () => {
       json: async () => ({ message: 'Too Many Requests' }),
     } as Response);
     render(<NewPostPage />);
-    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
-      target: { value: '频率限制标题\n\n频率限制正文' },
+    fireEvent.change(screen.getByRole('textbox', { name: '标题' }), {
+      target: { value: '频率限制标题' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '失败复盘' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '正文' }), {
+      target: { value: '频率限制正文' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /失败复盘/ }));
     fireEvent.click(screen.getByRole('button', { name: '发布帖子' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('发布过于频繁，请稍后再试。');

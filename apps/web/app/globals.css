@@ -19,6 +19,582 @@
   --shadow: 0 18px 48px rgba(31, 40, 55, 0.07);
 }
 
+/* Post composer — selected split-editor direction */
+.compose-community {
+  min-width: 0;
+  background: #f7f7fa;
+}
+
+.compose-workspace {
+  padding-top: 72px;
+}
+
+.compose-page {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 24px 30px 56px;
+}
+
+.compose-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: #7b7786;
+  font-size: 13px;
+}
+
+.compose-breadcrumb a {
+  color: #655f72;
+  text-decoration: none;
+}
+
+.compose-breadcrumb a:hover {
+  color: var(--community-primary, #6d3de8);
+}
+
+.compose-page__intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.compose-page__intro h1 {
+  margin: 0;
+  color: #17131f;
+  font-size: clamp(28px, 2.2vw, 36px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.compose-page__intro p {
+  margin: 8px 0 0;
+  color: #777180;
+  font-size: 15px;
+}
+
+.compose-page__intro .community-compose-note {
+  max-width: 360px;
+  color: #817b8d;
+  text-align: right;
+}
+
+.compose-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 354px;
+  align-items: start;
+  gap: 22px;
+}
+
+.compose-editor-column {
+  min-width: 0;
+}
+
+.compose-editor {
+  overflow: hidden;
+  border: 1px solid #d9d5e1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgb(35 24 55 / 5%);
+}
+
+.compose-toolbar {
+  position: static;
+  z-index: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  margin: 0;
+  padding: 9px 16px;
+  overflow-x: auto;
+  border: 0;
+  border-bottom: 1px solid #e7e4eb;
+  border-radius: 0;
+  background: #fbfafc;
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.compose-toolbar__group {
+  display: flex;
+  gap: 3px;
+  padding-right: 9px;
+  border-right: 1px solid #ded9e4;
+}
+
+.compose-toolbar button,
+.compose-toolbar__upload {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #5d5766;
+  background: transparent;
+  cursor: pointer;
+}
+
+.compose-toolbar button:hover,
+.compose-toolbar__upload:hover {
+  border-color: #d9d1eb;
+  color: #6235d5;
+  background: #f1ecfb;
+}
+
+.compose-toolbar__upload {
+  gap: 7px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.compose-toolbar__hint {
+  margin-left: auto;
+  color: #9892a0;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.compose-canvas {
+  min-height: 610px;
+  padding: 18px 24px 8px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+}
+
+.compose-title-input {
+  width: 100%;
+  height: 62px;
+  border: 0;
+  border-bottom: 1px solid #ece9ef;
+  outline: 0;
+  color: #1e1926;
+  background: transparent;
+  font: inherit;
+  font-size: clamp(23px, 2.1vw, 31px);
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.compose-title-input::placeholder,
+.compose-canvas textarea::placeholder {
+  color: #aaa4b0;
+}
+
+.compose-canvas textarea {
+  width: 100%;
+  min-height: 520px;
+  padding: 20px 0;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  color: #332d3a;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.compose-upload-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 24px 20px;
+  padding: 12px 16px;
+  border: 1px dashed #cfc6de;
+  border-radius: 9px;
+  color: #675e73;
+  background: #fbf9fd;
+}
+
+.compose-upload-strip label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+}
+
+.compose-upload-strip label > span {
+  display: grid;
+  gap: 2px;
+}
+
+.compose-upload-strip strong {
+  color: #4c4059;
+  font-size: 13px;
+}
+
+.compose-upload-strip small,
+.compose-upload-strip > span {
+  color: #958e9d;
+  font-size: 11px;
+}
+
+.compose-upload-strip input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.compose-image-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 24px 22px;
+}
+
+.compose-image-list figure {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid #e0dbe5;
+  border-radius: 8px;
+}
+
+.compose-image-list img {
+  display: block;
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+}
+
+.compose-image-list figcaption {
+  padding: 7px;
+  color: #7e7786;
+  font-size: 11px;
+}
+
+.compose-draft-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 4px 0;
+  color: #81798b;
+  font-size: 12px;
+}
+
+.compose-draft-status span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5d8a67;
+}
+
+.compose-publish-panel {
+  position: sticky;
+  top: 92px;
+  overflow: hidden;
+  border: 1px solid #d9d5e1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgb(35 24 55 / 5%);
+}
+
+.compose-publish-panel > section {
+  padding: 20px;
+  border-bottom: 1px solid #ebe8ee;
+}
+
+.compose-publish-panel h2,
+.compose-panel-label {
+  display: block;
+  margin: 0 0 12px;
+  color: #282130;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.compose-category-list {
+  display: grid;
+  gap: 7px;
+}
+
+.compose-category-list button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 55px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #6e6875;
+  background: #faf9fb;
+  text-align: left;
+  cursor: pointer;
+}
+
+.compose-category-list button:hover {
+  border-color: #d8cfeb;
+  background: #f7f3fc;
+}
+
+.compose-category-list button[aria-pressed='true'] {
+  border-color: #7a4de3;
+  color: #6131ce;
+  background: #f3edff;
+}
+
+.compose-category-list button > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.compose-category-list strong {
+  color: #37303f;
+  font-size: 13px;
+}
+
+.compose-category-list small {
+  overflow: hidden;
+  color: #8e8795;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.compose-more-category {
+  display: grid;
+  grid-template-columns: 1fr 132px;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  color: #6c6474;
+  font-size: 12px;
+}
+
+.compose-more-category select,
+.compose-publish-panel input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dcd7e1;
+  border-radius: 7px;
+  outline: 0;
+  color: #42394a;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.compose-more-category select:focus,
+.compose-publish-panel input:focus {
+  border-color: #7950d7;
+  box-shadow: 0 0 0 3px rgb(121 80 215 / 12%);
+}
+
+.compose-selected-category {
+  margin: 9px 0 0;
+  color: #7042d3;
+  font-size: 11px;
+}
+
+.compose-publish-panel section > small {
+  display: block;
+  margin-top: 7px;
+  color: #928b99;
+  font-size: 11px;
+}
+
+.compose-publish-meta {
+  display: grid;
+  gap: 14px;
+}
+
+.compose-publish-meta > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #7146d5;
+}
+
+.compose-publish-meta span {
+  display: grid;
+  gap: 2px;
+}
+
+.compose-publish-meta strong {
+  color: #3e3547;
+  font-size: 13px;
+}
+
+.compose-publish-meta small {
+  color: #918a98;
+  font-size: 11px;
+}
+
+.compose-checklist p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 9px 0;
+  color: #6f6877;
+  font-size: 12px;
+}
+
+.compose-checklist p svg[data-lucide='circle-check-big'] {
+  color: #4c9a61;
+}
+
+.compose-panel-actions {
+  display: grid;
+  gap: 9px;
+  padding: 20px;
+}
+
+.compose-panel-actions button {
+  min-height: 44px;
+  border: 1px solid #d8d2df;
+  border-radius: 8px;
+  color: #5c5465;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 730;
+  cursor: pointer;
+}
+
+.compose-panel-actions button:first-child {
+  border-color: #5627bd;
+  color: #fff;
+  background: #6c3bd7;
+  box-shadow: 0 4px 12px rgb(92 46 196 / 18%);
+}
+
+.compose-panel-actions button:first-child:hover:not(:disabled) {
+  background: #5d2ec7;
+}
+
+.compose-panel-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@media (max-width: 1080px) {
+  .compose-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compose-publish-panel {
+    position: static;
+  }
+
+  .compose-publish-panel > section:first-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+  }
+
+  .compose-publish-panel > section:first-child h2,
+  .compose-publish-panel > section:first-child .compose-selected-category {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .compose-workspace {
+    padding-top: 64px;
+  }
+
+  .compose-page {
+    padding: 16px 12px 36px;
+  }
+
+  .compose-breadcrumb {
+    margin-bottom: 13px;
+  }
+
+  .compose-page__intro {
+    margin-bottom: 16px;
+  }
+
+  .compose-page__intro .community-compose-note,
+  .compose-toolbar__hint,
+  .compose-toolbar__upload span {
+    display: none;
+  }
+
+  .compose-page__intro h1 {
+    font-size: 27px;
+  }
+
+  .compose-layout {
+    gap: 16px;
+  }
+
+  .compose-toolbar {
+    min-height: 52px;
+    padding: 7px 9px;
+  }
+
+  .compose-toolbar__group {
+    padding-right: 5px;
+  }
+
+  .compose-toolbar button,
+  .compose-toolbar__upload {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 7px;
+  }
+
+  .compose-canvas {
+    min-height: 490px;
+    padding: 12px 16px 4px;
+  }
+
+  .compose-title-input {
+    height: 56px;
+    font-size: 22px;
+  }
+
+  .compose-canvas textarea {
+    min-height: 410px;
+    padding-top: 16px;
+    font-size: 16px;
+  }
+
+  .compose-upload-strip {
+    margin: 0 16px 16px;
+    padding: 11px;
+  }
+
+  .compose-upload-strip small {
+    display: none;
+  }
+
+  .compose-image-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 16px 18px;
+  }
+
+  .compose-draft-status {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .compose-publish-panel > section:first-child {
+    display: block;
+  }
+
+  .compose-more-category {
+    grid-template-columns: 1fr;
+  }
+}
+
 .comment-section {
   max-width: 860px;
   margin: 3rem auto 0;
@@ -5717,4 +6293,495 @@ img.post-card-pixel-technical-discussion {
   .post-aside {
     grid-template-columns: 1fr;
   }
+}
+
+/* Immersive post composer: a quiet writing surface inspired by long-form forum editors. */
+.compose-community {
+  min-width: 0;
+  background: color-mix(in srgb, var(--muted) 62%, var(--background));
+  background-image: none;
+}
+
+.compose-workspace {
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.compose-workspace__header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 max(24px, calc((100vw - 980px) / 2));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.compose-workspace__header > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+}
+
+.compose-workspace__header a,
+.compose-workspace__header span,
+.compose-workspace__header p {
+  color: var(--muted-foreground);
+}
+
+.compose-workspace__header a:hover {
+  color: var(--primary);
+}
+
+.compose-workspace__header p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.compose-page {
+  width: min(100%, 980px);
+  padding: 26px 24px 108px;
+  margin: 0 auto;
+}
+
+.compose-page__intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 28px 20px;
+}
+
+.compose-page__intro h1 {
+  margin: 5px 0 0;
+  font-size: 24px;
+  letter-spacing: -0.035em;
+}
+
+.compose-page__intro .community-compose-note {
+  max-width: 390px;
+  margin: 0;
+  text-align: right;
+}
+
+.compose-form {
+  display: grid;
+  gap: 16px;
+}
+
+.compose-form .community-compose-guide {
+  width: min(100%, 820px);
+  margin: 0 auto;
+}
+
+.compose-toolbar {
+  position: sticky;
+  z-index: 30;
+  top: 80px;
+  display: flex;
+  width: min(100%, 900px);
+  min-height: 58px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 7px 24px rgb(25 20 38 / 8%);
+}
+
+.compose-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+}
+
+.compose-toolbar button,
+.compose-toolbar__upload {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.compose-toolbar button:hover,
+.compose-toolbar button:focus-visible,
+.compose-toolbar__upload:hover,
+.compose-toolbar__upload:focus-within {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.compose-toolbar__upload {
+  width: auto;
+  gap: 7px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compose-toolbar__upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.compose-toolbar__hint {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.compose-canvas {
+  width: min(100%, 820px);
+  min-height: 720px;
+  padding: 24px 48px 0;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 14px 38px rgb(25 20 38 / 7%);
+}
+
+.compose-title-input,
+.compose-canvas textarea,
+.compose-settings input,
+.compose-settings select {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+}
+
+.compose-title-input {
+  height: 58px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.compose-title-input::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
+}
+
+.compose-canvas textarea {
+  display: block;
+  min-height: 500px;
+  padding: 20px 0 30px;
+  resize: vertical;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.compose-canvas textarea::placeholder,
+.compose-settings input::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 68%, transparent);
+}
+
+.compose-title-input:focus,
+.compose-canvas textarea:focus,
+.compose-settings input:focus,
+.compose-settings select:focus {
+  box-shadow: none;
+}
+
+.compose-image-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 0 24px;
+}
+
+.compose-image-list figure {
+  min-width: 0;
+  margin: 0;
+}
+
+.compose-image-list img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.compose-image-list figcaption {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compose-settings {
+  display: grid;
+  gap: 18px;
+  padding: 24px 0 30px;
+  border-top: 1px solid var(--border);
+}
+
+.compose-settings label,
+.compose-settings__type {
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compose-settings label > span i {
+  margin-right: 4px;
+  color: var(--destructive);
+  font-style: normal;
+}
+
+.compose-settings input,
+.compose-settings select {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--muted) 45%, var(--surface));
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.compose-settings__type {
+  grid-template-columns: 106px auto 1fr;
+}
+
+.compose-settings__type strong {
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: var(--muted);
+  font-size: 11px;
+}
+
+.compose-settings__type small {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.compose-form .form-error {
+  width: min(100%, 820px);
+  padding: 10px 13px;
+  margin: 0 auto;
+  border: 1px solid color-mix(in srgb, var(--destructive) 35%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--destructive) 6%, var(--surface));
+}
+
+.compose-publish-bar {
+  position: fixed;
+  z-index: 45;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.compose-publish-bar p {
+  display: flex;
+  min-width: 260px;
+  gap: 18px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.compose-publish-bar button {
+  min-width: 168px;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--primary) 55%, var(--pixel-ink));
+}
+
+.compose-publish-bar button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+}
+
+.compose-publish-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .compose-workspace {
+    padding-top: 64px;
+  }
+
+  .compose-workspace__header {
+    min-height: 54px;
+    padding: 0 16px;
+  }
+
+  .compose-workspace__header p {
+    display: none;
+  }
+
+  .compose-page {
+    padding: 18px 12px 104px;
+  }
+
+  .compose-page__intro {
+    align-items: flex-start;
+    padding: 0 6px 16px;
+  }
+
+  .compose-page__intro .community-compose-note {
+    display: none;
+  }
+
+  .compose-toolbar {
+    top: 64px;
+    min-height: 54px;
+    justify-content: flex-start;
+    padding: 7px 10px;
+    overflow-x: auto;
+    border-radius: 10px;
+    scrollbar-width: none;
+  }
+
+  .compose-toolbar__hint {
+    display: none;
+  }
+
+  .compose-toolbar button {
+    flex: 0 0 36px;
+  }
+
+  .compose-toolbar__upload {
+    flex: 0 0 auto;
+  }
+
+  .compose-canvas {
+    min-height: 620px;
+    padding: 18px 20px 0;
+    border-radius: 10px;
+  }
+
+  .compose-title-input {
+    height: 52px;
+    font-size: 20px;
+  }
+
+  .compose-canvas textarea {
+    min-height: 390px;
+    font-size: 16px;
+  }
+
+  .compose-image-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compose-settings label,
+  .compose-settings__type {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .compose-settings__type {
+    grid-template-columns: auto 1fr;
+  }
+
+  .compose-settings__type > span {
+    grid-column: 1 / -1;
+  }
+
+  .compose-publish-bar {
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 68px;
+    padding: 10px 14px;
+  }
+
+  .compose-publish-bar p {
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .compose-publish-bar button {
+    min-width: 132px;
+    min-height: 42px;
+  }
+}
+
+/* Cascade lock for the selected split-editor composition. */
+.compose-community { min-width: 0; background: #f7f7fa; }
+.compose-workspace { padding-top: 72px; }
+.compose-page { width: min(100%, 1440px); margin: 0 auto; padding: 24px 30px 56px; }
+.compose-page__intro { align-items: flex-end; padding: 0; margin-bottom: 22px; }
+.compose-toolbar {
+  position: static;
+  z-index: auto;
+  min-height: 58px;
+  margin: 0;
+  padding: 9px 16px;
+  border: 0;
+  border-bottom: 1px solid #e7e4eb;
+  border-radius: 0;
+  background: #fbfafc;
+  box-shadow: none;
+}
+.compose-toolbar button,
+.compose-toolbar__upload { min-width: 36px; height: 36px; padding: 0 9px; border-radius: 7px; }
+.compose-canvas { min-height: 610px; padding: 18px 24px 8px; border: 0; border-radius: 0; background: #fff; }
+.compose-title-input { height: 62px; font-size: clamp(23px, 2.1vw, 31px); }
+.compose-canvas textarea { min-height: 520px; padding: 20px 0; font-size: 17px; line-height: 1.85; }
+.compose-image-list { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 24px 22px; }
+
+@media (max-width: 720px) {
+  .compose-workspace { padding-top: 64px; }
+  .compose-page { padding: 16px 12px 36px; }
+  .compose-page__intro { margin-bottom: 16px; padding: 0; }
+  .compose-toolbar { position: static; min-height: 52px; padding: 7px 9px; border-radius: 0; }
+  .compose-toolbar button,
+  .compose-toolbar__upload { min-width: 34px; height: 34px; padding: 0 7px; }
+  .compose-canvas { min-height: 490px; padding: 12px 16px 4px; border-radius: 0; }
+  .compose-title-input { height: 56px; font-size: 22px; }
+  .compose-canvas textarea { min-height: 410px; padding-top: 16px; font-size: 16px; }
+  .compose-image-list { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 16px 18px; }
 }
