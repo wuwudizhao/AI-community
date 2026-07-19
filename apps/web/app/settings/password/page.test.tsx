@@ -21,6 +21,7 @@ const user: AuthUser = {
   role: 'USER',
   status: 'ACTIVE',
   emailVerifiedAt: new Date().toISOString(),
+  adminVerifiedUntil: null,
 };
 
 describe('PasswordSettingsPage', () => {

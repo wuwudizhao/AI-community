@@ -11,7 +11,11 @@ import { Prisma } from '../generated/prisma/client';
 import type { User, UserStatus } from '../generated/prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { AUTHENTICATION_FAILED_MESSAGE } from './auth.constants';
+import {
+  ADMIN_PASSWORD_VERIFICATION_FAILED_MESSAGE,
+  ADMIN_VERIFICATION_TTL_MS,
+  AUTHENTICATION_FAILED_MESSAGE,
+} from './auth.constants';
 import {
   createSecret,
   hashPassword,
@@ -32,6 +36,12 @@ export interface PublicUser {
   role: string;
   status: string;
   emailVerifiedAt: string | null;
+  adminVerifiedUntil: string | null;
+}
+
+export interface AuthenticatedSession {
+  id: string;
+  adminVerifiedAt: Date | null;
 }
 
 @Injectable()
@@ -126,6 +136,12 @@ export class AuthService {
   }
 
   async authenticate(secret?: string): Promise<PublicUser> {
+    return (await this.authenticateSession(secret)).user;
+  }
+
+  async authenticateSession(
+    secret?: string,
+  ): Promise<{ user: PublicUser; session: AuthenticatedSession }> {
     if (!secret) throw new UnauthorizedException('未登录');
     const session = await this.prisma.userSession.findUnique({
       where: { tokenHash: hashSecret(secret) },
@@ -135,18 +151,24 @@ export class AuthService {
       throw new UnauthorizedException('登录状态无效或已过期');
     }
     assertSessionUserAllowed(session.user.status);
+    const adminVerifiedAt = isAdminVerificationValid(session.adminVerifiedAt)
+      ? session.adminVerifiedAt
+      : null;
     await this.prisma.userSession.update({
       where: { id: session.id },
-      data: { lastSeenAt: new Date() },
+      data: { lastSeenAt: new Date(), adminVerifiedAt },
     });
-    return toPublicUser(session.user);
+    return {
+      user: toPublicUser(session.user, adminVerifiedAt),
+      session: { id: session.id, adminVerifiedAt },
+    };
   }
 
   async logout(secret?: string): Promise<void> {
     if (!secret) return;
     await this.prisma.userSession.updateMany({
       where: { tokenHash: hashSecret(secret), revokedAt: null },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: new Date(), adminVerifiedAt: null },
     });
   }
 
@@ -170,6 +192,31 @@ export class AuthService {
     ]);
 
     return { message: '密码修改成功，请重新登录。' };
+  }
+
+  async verifyAdminPassword(userId: string, sessionId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true, role: true },
+    });
+    if (!user || user.role !== 'ADMIN') {
+      throw new ForbiddenException('仅管理员可以进行二次验证');
+    }
+    if (!(await verifyPassword(user.passwordHash, password))) {
+      throw new BadRequestException(ADMIN_PASSWORD_VERIFICATION_FAILED_MESSAGE);
+    }
+
+    const adminVerifiedAt = new Date();
+    const result = await this.prisma.userSession.updateMany({
+      where: { id: sessionId, userId, revokedAt: null, expiresAt: { gt: adminVerifiedAt } },
+      data: { adminVerifiedAt },
+    });
+    if (result.count !== 1) throw new UnauthorizedException('登录状态无效或已过期');
+
+    return {
+      message: '管理员身份验证成功',
+      adminVerifiedUntil: adminVerificationExpiresAt(adminVerifiedAt).toISOString(),
+    };
   }
 
   async resendVerification(email: string) {
@@ -220,7 +267,7 @@ function assertSessionUserAllowed(status: UserStatus): void {
     throw new ForbiddenException('账户当前不可登录');
 }
 
-function toPublicUser(user: User): PublicUser {
+function toPublicUser(user: User, adminVerifiedAt: Date | null = null): PublicUser {
   return {
     id: user.id,
     email: user.email,
@@ -230,7 +277,23 @@ function toPublicUser(user: User): PublicUser {
     role: user.role,
     status: user.status,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+    adminVerifiedUntil: isAdminVerificationValid(adminVerifiedAt)
+      ? adminVerificationExpiresAt(adminVerifiedAt!).toISOString()
+      : null,
   };
+}
+
+export function isAdminVerificationValid(
+  adminVerifiedAt: Date | null | undefined,
+  now = new Date(),
+): boolean {
+  return Boolean(
+    adminVerifiedAt && adminVerificationExpiresAt(adminVerifiedAt).getTime() >= now.getTime(),
+  );
+}
+
+function adminVerificationExpiresAt(adminVerifiedAt: Date): Date {
+  return new Date(adminVerifiedAt.getTime() + ADMIN_VERIFICATION_TTL_MS);
 }
 
 function genericResend() {

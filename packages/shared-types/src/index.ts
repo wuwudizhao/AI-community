@@ -23,6 +23,7 @@ export interface AuthUser {
   role: 'USER' | 'MODERATOR' | 'ADMIN';
   status: 'ACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED' | 'BANNED';
   emailVerifiedAt: string | null;
+  adminVerifiedUntil: string | null;
 }
 
 export type ForumCategoryGroup = 'business' | 'technical';

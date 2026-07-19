@@ -13,6 +13,7 @@ const user: PublicUser = {
   role: 'USER',
   status: 'ACTIVE',
   emailVerifiedAt: new Date().toISOString(),
+  adminVerifiedUntil: null,
 };
 
 describe('CommentsService.create', () => {

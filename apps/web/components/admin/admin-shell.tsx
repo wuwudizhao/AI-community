@@ -13,13 +13,40 @@ const navigation = [
   { href: '/admin/users', label: '用户管理', icon: Users },
 ] as const;
 
+const ADMIN_VERIFY_PATH = '/admin/verify';
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
+  const adminVerificationActive = isAdminVerificationActive(user?.adminVerifiedUntil);
 
   useEffect(() => {
-    if (!loading && !user) router.replace(`/login?redirect=${pathname}`);
+    if (loading) return;
+    if (!user) {
+      router.replace(`/login?redirect=${pathname === ADMIN_VERIFY_PATH ? '/admin' : pathname}`);
+      return;
+    }
+    if (user.role === 'ADMIN' && pathname !== ADMIN_VERIFY_PATH && !adminVerificationActive) {
+      router.replace(`${ADMIN_VERIFY_PATH}?redirect=${pathname}`);
+    }
+  }, [adminVerificationActive, loading, pathname, router, user]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !user?.adminVerifiedUntil ||
+      user.role !== 'ADMIN' ||
+      pathname === ADMIN_VERIFY_PATH
+    ) {
+      return;
+    }
+    const remaining = Date.parse(user.adminVerifiedUntil) - Date.now();
+    if (!Number.isFinite(remaining) || remaining <= 0) return;
+    const timeout = window.setTimeout(() => {
+      router.replace(`${ADMIN_VERIFY_PATH}?redirect=${pathname}`);
+    }, remaining);
+    return () => window.clearTimeout(timeout);
   }, [loading, pathname, router, user]);
 
   if (loading) {
@@ -42,6 +69,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </main>
     );
   }
+
+  if (pathname !== ADMIN_VERIFY_PATH && !adminVerificationActive) {
+    return <main className="admin-access-state">正在跳转管理员验证页…</main>;
+  }
+
+  if (pathname === ADMIN_VERIFY_PATH) return <>{children}</>;
 
   return (
     <div className="admin-shell">
@@ -77,4 +110,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </main>
     </div>
   );
+}
+
+export function isAdminVerificationActive(
+  adminVerifiedUntil: string | null | undefined,
+  now = Date.now(),
+): boolean {
+  return Boolean(adminVerifiedUntil && Date.parse(adminVerifiedUntil) >= now);
 }

@@ -64,6 +64,13 @@ export class ChangePasswordDto {
   confirmPassword!: string;
 }
 
+export class VerifyAdminPasswordDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  password!: string;
+}
+
 export class ResendVerificationDto {
   @IsEmail()
   @MaxLength(254)

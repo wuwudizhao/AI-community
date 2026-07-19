@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -17,11 +17,18 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
   const password = 'StrongPass123';
   const passwordChangeEmail = 'password-change@example.com';
   const newPassword = 'NewStrongPass456';
+  const adminVerificationEmail = 'admin-verification@example.com';
+  const verificationUserEmail = 'admin-verification-user@example.com';
+  const adminVerificationSecret = 'admin-verification-primary-secret';
+  const otherAdminSessionSecret = 'admin-verification-secondary-secret';
+  const verificationUserSecret = 'admin-verification-user-secret';
   const testEmails = [
     email,
     'expired@example.com',
     'other@example.com',
     passwordChangeEmail,
+    adminVerificationEmail,
+    verificationUserEmail,
   ] as const;
 
   beforeAll(async () => {
@@ -149,6 +156,129 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
     await prisma.user.update({ where: { emailNormalized: email }, data: { status: 'ACTIVE' } });
   });
 
+  describe('admin password verification', () => {
+    let adminUserId: string;
+
+    beforeEach(async () => {
+      const passwordHash = await hashPassword(password);
+      const [adminUser, regularUser] = await Promise.all([
+        prisma.user.upsert({
+          where: { emailNormalized: adminVerificationEmail },
+          create: {
+            email: adminVerificationEmail,
+            emailNormalized: adminVerificationEmail,
+            passwordHash,
+            username: 'adminverification',
+            displayName: 'Admin Verification',
+            role: 'ADMIN',
+            status: 'ACTIVE',
+            emailVerifiedAt: new Date(),
+          },
+          update: { passwordHash, role: 'ADMIN', status: 'ACTIVE', emailVerifiedAt: new Date() },
+        }),
+        prisma.user.upsert({
+          where: { emailNormalized: verificationUserEmail },
+          create: {
+            email: verificationUserEmail,
+            emailNormalized: verificationUserEmail,
+            passwordHash,
+            username: 'adminverificationuser',
+            displayName: 'Admin Verification User',
+            role: 'USER',
+            status: 'ACTIVE',
+            emailVerifiedAt: new Date(),
+          },
+          update: { passwordHash, role: 'USER', status: 'ACTIVE', emailVerifiedAt: new Date() },
+        }),
+      ]);
+      adminUserId = adminUser.id;
+      await prisma.userSession.deleteMany({
+        where: { userId: { in: [adminUser.id, regularUser.id] } },
+      });
+      await prisma.userSession.createMany({
+        data: [
+          sessionData(adminUser.id, adminVerificationSecret),
+          sessionData(adminUser.id, otherAdminSessionSecret),
+          sessionData(regularUser.id, verificationUserSecret),
+        ],
+      });
+    });
+
+    it('returns 401 without a community session', () =>
+      request(app.getHttpServer())
+        .post('/api/auth/verify-admin-password')
+        .send({ password })
+        .expect(401));
+
+    it('returns 403 for a regular USER session', () =>
+      verifyAdminPassword(verificationUserSecret, password).expect(403));
+
+    it('rejects an incorrect ADMIN password with the unified message', async () => {
+      const response = await verifyAdminPassword(adminVerificationSecret, 'WrongPass123').expect(
+        400,
+      );
+      expect(response.body.message).toBe('密码不正确，请重新输入。');
+    });
+
+    it('marks only the current ADMIN session after a correct password', async () => {
+      const response = await verifyAdminPassword(adminVerificationSecret, password).expect(200);
+      expect(response.body).toMatchObject({
+        message: '管理员身份验证成功',
+        adminVerifiedUntil: expect.any(String),
+      });
+
+      const [currentSession, otherSession] = await Promise.all([
+        sessionFor(adminVerificationSecret),
+        sessionFor(otherAdminSessionSecret),
+      ]);
+      expect(currentSession.adminVerifiedAt).not.toBeNull();
+      expect(otherSession.adminVerifiedAt).toBeNull();
+      await authRequest('get', '/api/admin/dashboard', adminVerificationSecret).expect(200);
+      await authRequest('get', '/api/admin/dashboard', otherAdminSessionSecret).expect(403);
+    });
+
+    it('rejects an ADMIN verification older than 30 minutes', async () => {
+      await prisma.userSession.update({
+        where: { tokenHash: hashSecret(adminVerificationSecret) },
+        data: { adminVerifiedAt: new Date(Date.now() - 30 * 60_000 - 1) },
+      });
+
+      await authRequest('get', '/api/admin/dashboard', adminVerificationSecret).expect(403);
+      const me = await authRequest('get', '/api/auth/me', adminVerificationSecret).expect(200);
+      expect(me.body.adminVerifiedUntil).toBeNull();
+      expect((await sessionFor(adminVerificationSecret)).adminVerifiedAt).toBeNull();
+    });
+
+    it('clears secondary verification when the session logs out', async () => {
+      await verifyAdminPassword(adminVerificationSecret, password).expect(200);
+      await authRequest('post', '/api/auth/logout', adminVerificationSecret).expect(200);
+
+      const session = await sessionFor(adminVerificationSecret);
+      expect(session.revokedAt).not.toBeNull();
+      expect(session.adminVerifiedAt).toBeNull();
+    });
+
+    it('removes the verified session when the password changes', async () => {
+      await verifyAdminPassword(adminVerificationSecret, password).expect(200);
+      await authRequest('post', '/api/auth/change-password', adminVerificationSecret)
+        .send({ currentPassword: password, newPassword, confirmPassword: newPassword })
+        .expect(200);
+
+      await authRequest('get', '/api/auth/me', adminVerificationSecret).expect(401);
+      expect(await prisma.userSession.count({ where: { userId: adminUserId } })).toBe(0);
+    });
+
+    function verifyAdminPassword(secret: string, targetPassword: string) {
+      return authRequest('post', '/api/auth/verify-admin-password', secret).send({
+        password: targetPassword,
+      });
+    }
+
+    function sessionFor(secret: string) {
+      return prisma.userSession.findUniqueOrThrow({ where: { tokenHash: hashSecret(secret) } });
+    }
+  });
+
   describe('change password', () => {
     beforeEach(async () => {
       const passwordHash = await hashPassword(password);
@@ -217,6 +347,18 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
       .send({ email: targetEmail, password: targetPassword })
       .expect(200);
     return agent;
+  }
+
+  function authRequest(method: 'get' | 'post', path: string, secret: string) {
+    return request(app.getHttpServer())[method](path).set('Cookie', `liftoff_session=${secret}`);
+  }
+
+  function sessionData(userId: string, secret: string) {
+    return {
+      userId,
+      tokenHash: hashSecret(secret),
+      expiresAt: new Date(Date.now() + 3_600_000),
+    };
   }
 
   function register(targetEmail: string, targetUsername: string, expected = 201) {

@@ -28,7 +28,11 @@ describe('AuthActions', () => {
   });
 
   it('shows real identity, real unread count, and logs out through the auth provider', async () => {
-    authState = { user: { username: 'builder', displayName: '真实用户' }, loading: false, logout };
+    authState = {
+      user: { username: 'builder', displayName: '真实用户', role: 'ADMIN' },
+      loading: false,
+      logout,
+    };
     render(<AuthActions />);
     expect(screen.getByText('真实用户')).toBeInTheDocument();
     expect(await screen.findByText('99+')).toBeInTheDocument();
@@ -36,6 +40,7 @@ describe('AuthActions', () => {
       'href',
       '/settings/password',
     );
+    expect(screen.getByRole('link', { name: '管理后台' })).toHaveAttribute('href', '/admin');
     fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
     await waitFor(() => expect(logout).toHaveBeenCalledOnce());
   });

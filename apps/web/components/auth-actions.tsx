@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, KeyRound, LogOut } from 'lucide-react';
+import { Bell, KeyRound, LogOut, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
@@ -48,6 +48,11 @@ export function AuthActions() {
           <div className="header-profile__menu">
             <strong>{user.displayName || user.username}</strong>
             <span>@{user.username}</span>
+            {user.role === 'ADMIN' && (
+              <Link className="header-profile__menu-link" href="/admin">
+                <ShieldCheck size={15} aria-hidden="true" /> 管理后台
+              </Link>
+            )}
             <Link className="header-profile__menu-link" href="/settings/password">
               <KeyRound size={15} aria-hidden="true" /> 修改密码
             </Link>

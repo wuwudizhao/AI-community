@@ -127,6 +127,7 @@ async function createUser(
       userId: user.id,
       tokenHash: hashSecret(secret),
       expiresAt: new Date(Date.now() + 3_600_000),
+      adminVerifiedAt: role === 'ADMIN' ? new Date() : null,
     },
   });
   return user;

@@ -951,6 +951,129 @@
   text-decoration: none;
 }
 
+.admin-verify-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgb(109 61 232 / 10%), transparent 34%),
+    var(--background);
+}
+
+.admin-verify-card {
+  width: min(100%, 460px);
+  padding: 38px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.admin-verify-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  margin-bottom: 22px;
+  border-radius: 11px;
+  color: #fff;
+  background: #6d3de8;
+  box-shadow: 0 7px 20px rgb(109 61 232 / 24%);
+}
+
+.admin-verify-card h1 {
+  margin: 7px 0 9px;
+  font-size: 29px;
+  letter-spacing: -0.04em;
+}
+
+.admin-verify-card > p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.admin-verify-identity {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--muted) 55%, var(--surface));
+}
+
+.admin-verify-identity span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.admin-verify-identity strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.admin-verify-form {
+  display: grid;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.admin-verify-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-verify-form input {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  outline: 0;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.admin-verify-form input:focus {
+  border-color: #6d3de8;
+  box-shadow: 0 0 0 3px rgb(109 61 232 / 13%);
+}
+
+.admin-verify-form button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #6d3de8;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.admin-verify-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-verify-back {
+  display: block;
+  margin-top: 21px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.admin-verify-back:hover {
+  color: #6d3de8;
+}
+
 @media (max-width: 920px) {
   .admin-sidebar {
     position: static;

@@ -4,13 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminShell } from './admin-shell';
 
-const { replace, useAuthMock } = vi.hoisted(() => ({
+const { replace, useAuthMock, usePathnameMock } = vi.hoisted(() => ({
   replace: vi.fn(),
   useAuthMock: vi.fn(),
+  usePathnameMock: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/admin',
+  usePathname: usePathnameMock,
   useRouter: () => ({ replace }),
 }));
 vi.mock('@/components/auth-provider', () => ({ useAuth: useAuthMock }));
@@ -19,7 +20,10 @@ const admin = userWithRole('ADMIN');
 const user = userWithRole('USER');
 
 describe('AdminShell', () => {
-  beforeEach(() => replace.mockReset());
+  beforeEach(() => {
+    replace.mockReset();
+    usePathnameMock.mockReturnValue('/admin');
+  });
 
   it('redirects an unauthenticated visitor to the login page', async () => {
     useAuthMock.mockReturnValue({ user: null, loading: false });
@@ -29,25 +33,54 @@ describe('AdminShell', () => {
     expect(screen.queryByText('Admin content')).not.toBeInTheDocument();
   });
 
-  it('renders the admin workspace for an ADMIN', () => {
-    useAuthMock.mockReturnValue({ user: admin, loading: false });
+  it('redirects an unverified ADMIN to secondary verification', async () => {
+    useAuthMock.mockReturnValue({ user: adminWithVerification(null), loading: false });
+    render(<AdminShell>Admin content</AdminShell>);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/admin/verify?redirect=/admin'));
+    expect(screen.queryByText('Admin content')).not.toBeInTheDocument();
+  });
+
+  it('keeps an existing verified ADMIN session in the admin workspace after auth loading', () => {
+    useAuthMock.mockReturnValue({ user: null, loading: true });
+    const { rerender } = render(<AdminShell>Admin content</AdminShell>);
+
+    expect(replace).not.toHaveBeenCalled();
+
+    useAuthMock.mockReturnValue({
+      user: adminWithVerification(activeVerification()),
+      loading: false,
+    });
+    rerender(<AdminShell>Admin content</AdminShell>);
+
+    expect(screen.getByText('Admin content')).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('does not ask again while secondary verification is active', () => {
+    usePathnameMock.mockReturnValue('/admin/users');
+    useAuthMock.mockReturnValue({
+      user: adminWithVerification(activeVerification()),
+      loading: false,
+    });
     render(<AdminShell>Admin content</AdminShell>);
 
     expect(screen.getByText('Admin content')).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it('keeps an existing ADMIN session in the admin workspace after auth loading', () => {
-    useAuthMock.mockReturnValue({ user: null, loading: true });
-    const { rerender } = render(<AdminShell>Admin content</AdminShell>);
+  it('requires secondary verification again after it expires', async () => {
+    usePathnameMock.mockReturnValue('/admin/posts');
+    useAuthMock.mockReturnValue({
+      user: adminWithVerification(new Date(Date.now() - 1).toISOString()),
+      loading: false,
+    });
+    render(<AdminShell>Admin content</AdminShell>);
 
-    expect(replace).not.toHaveBeenCalled();
-
-    useAuthMock.mockReturnValue({ user: admin, loading: false });
-    rerender(<AdminShell>Admin content</AdminShell>);
-
-    expect(screen.getByText('Admin content')).toBeInTheDocument();
-    expect(replace).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith('/admin/verify?redirect=/admin/posts'),
+    );
+    expect(screen.queryByText('Admin content')).not.toBeInTheDocument();
   });
 
   it('keeps showing 403 for an authenticated USER', () => {
@@ -70,5 +103,14 @@ function userWithRole(role: AuthUser['role']): AuthUser {
     role,
     status: 'ACTIVE',
     emailVerifiedAt: new Date().toISOString(),
+    adminVerifiedUntil: null,
   };
+}
+
+function adminWithVerification(adminVerifiedUntil: string | null): AuthUser {
+  return { ...admin, adminVerifiedUntil };
+}
+
+function activeVerification(): string {
+  return new Date(Date.now() + 30 * 60_000).toISOString();
 }

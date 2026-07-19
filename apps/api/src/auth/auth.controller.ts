@@ -10,6 +10,7 @@ import {
   LoginDto,
   RegisterDto,
   ResendVerificationDto,
+  VerifyAdminPasswordDto,
   VerifyEmailDto,
 } from './auth.dto';
 import { SessionAuthGuard, type AuthenticatedRequest } from './session-auth.guard';
@@ -61,6 +62,14 @@ export class AuthController {
   @UseGuards(SessionAuthGuard)
   changePassword(@Req() request: AuthenticatedRequest, @Body() input: ChangePasswordDto) {
     return this.auth.changePassword(request.user.id, input);
+  }
+
+  @Post('verify-admin-password')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 8, ttl: 60_000 } })
+  @UseGuards(SessionAuthGuard)
+  verifyAdminPassword(@Req() request: AuthenticatedRequest, @Body() input: VerifyAdminPasswordDto) {
+    return this.auth.verifyAdminPassword(request.user.id, request.session.id, input.password);
   }
 
   @Post('resend-verification')
