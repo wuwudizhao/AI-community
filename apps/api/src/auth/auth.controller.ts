@@ -1,11 +1,18 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, ResendVerificationDto, VerifyEmailDto } from './auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResendVerificationDto,
+  VerifyEmailDto,
+} from './auth.dto';
+import { SessionAuthGuard, type AuthenticatedRequest } from './session-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -47,6 +54,13 @@ export class AuthController {
   @Get('me')
   me(@Req() request: Request) {
     return this.auth.authenticate(request.cookies?.[this.cookieName()] as string | undefined);
+  }
+
+  @Post('change-password')
+  @HttpCode(200)
+  @UseGuards(SessionAuthGuard)
+  changePassword(@Req() request: AuthenticatedRequest, @Body() input: ChangePasswordDto) {
+    return this.auth.changePassword(request.user.id, input);
   }
 
   @Post('resend-verification')

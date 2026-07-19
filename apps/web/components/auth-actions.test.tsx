@@ -32,6 +32,10 @@ describe('AuthActions', () => {
     render(<AuthActions />);
     expect(screen.getByText('真实用户')).toBeInTheDocument();
     expect(await screen.findByText('99+')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '修改密码' })).toHaveAttribute(
+      'href',
+      '/settings/password',
+    );
     fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
     await waitFor(() => expect(logout).toHaveBeenCalledOnce());
   });

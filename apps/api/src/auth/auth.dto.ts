@@ -44,6 +44,26 @@ export class LoginDto {
   password!: string;
 }
 
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(128)
+  @Matches(/[a-z]/, { message: '密码必须包含小写字母' })
+  @Matches(/[A-Z]/, { message: '密码必须包含大写字母' })
+  @Matches(/[0-9]/, { message: '密码必须包含数字' })
+  newPassword!: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(128)
+  confirmPassword!: string;
+}
+
 export class ResendVerificationDto {
   @IsEmail()
   @MaxLength(254)

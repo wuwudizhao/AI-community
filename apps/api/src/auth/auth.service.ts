@@ -19,7 +19,7 @@ import {
   normalizeEmail,
   verifyPassword,
 } from './auth.crypto';
-import type { LoginDto, RegisterDto } from './auth.dto';
+import type { ChangePasswordDto, LoginDto, RegisterDto } from './auth.dto';
 import { buildVerificationUrl, MAIL_SERVICE, type MailService } from './mail/mail.service';
 import { SYSTEM_GUEST_USER } from './system-users';
 
@@ -148,6 +148,28 @@ export class AuthService {
       where: { tokenHash: hashSecret(secret), revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  async changePassword(userId: string, input: ChangePasswordDto) {
+    if (input.newPassword !== input.confirmPassword) {
+      throw new BadRequestException('两次输入的新密码不一致');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user || !(await verifyPassword(user.passwordHash, input.currentPassword))) {
+      throw new BadRequestException('当前密码不正确');
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.userSession.deleteMany({ where: { userId } }),
+    ]);
+
+    return { message: '密码修改成功，请重新登录。' };
   }
 
   async resendVerification(email: string) {

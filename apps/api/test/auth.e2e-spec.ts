@@ -15,7 +15,14 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
   const email = 'phase3@example.com';
   const username = 'phase3builder';
   const password = 'StrongPass123';
-  const testEmails = [email, 'expired@example.com', 'other@example.com'] as const;
+  const passwordChangeEmail = 'password-change@example.com';
+  const newPassword = 'NewStrongPass456';
+  const testEmails = [
+    email,
+    'expired@example.com',
+    'other@example.com',
+    passwordChangeEmail,
+  ] as const;
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
@@ -63,7 +70,10 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
       where: { emailNormalized: email },
       data: { status: 'PENDING_VERIFICATION', emailVerifiedAt: null },
     });
-    await request(app.getHttpServer()).post('/api/auth/login').send({ email, password }).expect(403);
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email, password })
+      .expect(403);
     await prisma.user.update({
       where: { emailNormalized: email },
       data: { status: 'ACTIVE', emailVerifiedAt: new Date() },
@@ -138,6 +148,76 @@ describe('Authentication API (e2e, PostgreSQL)', () => {
       .expect(403);
     await prisma.user.update({ where: { emailNormalized: email }, data: { status: 'ACTIVE' } });
   });
+
+  describe('change password', () => {
+    beforeEach(async () => {
+      const passwordHash = await hashPassword(password);
+      await prisma.user.upsert({
+        where: { emailNormalized: passwordChangeEmail },
+        create: {
+          email: passwordChangeEmail,
+          emailNormalized: passwordChangeEmail,
+          passwordHash,
+          username: 'passwordchanger',
+          displayName: 'Password Changer',
+          status: 'ACTIVE',
+          emailVerifiedAt: new Date(),
+        },
+        update: { passwordHash, status: 'ACTIVE', emailVerifiedAt: new Date() },
+      });
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { emailNormalized: passwordChangeEmail },
+      });
+      await prisma.userSession.deleteMany({ where: { userId: user.id } });
+    });
+
+    it('changes the password, rejects bad credentials, and invalidates every session', async () => {
+      const firstAgent = await loginAgent(passwordChangeEmail, password);
+      const secondAgent = await loginAgent(passwordChangeEmail, password);
+
+      const rejected = await firstAgent
+        .post('/api/auth/change-password')
+        .send({
+          currentPassword: 'WrongCurrent123',
+          newPassword,
+          confirmPassword: newPassword,
+        })
+        .expect(400);
+      expect(rejected.body.message).toBe('当前密码不正确');
+      await firstAgent.get('/api/auth/me').expect(200);
+
+      const changed = await firstAgent
+        .post('/api/auth/change-password')
+        .send({ currentPassword: password, newPassword, confirmPassword: newPassword })
+        .expect(200);
+      expect(changed.body).toEqual({ message: '密码修改成功，请重新登录。' });
+
+      await firstAgent.get('/api/auth/me').expect(401);
+      await secondAgent.get('/api/auth/me').expect(401);
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { emailNormalized: passwordChangeEmail },
+      });
+      expect(await prisma.userSession.count({ where: { userId: user.id } })).toBe(0);
+
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: passwordChangeEmail, password })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: passwordChangeEmail, password: newPassword })
+        .expect(200);
+    });
+  });
+
+  async function loginAgent(targetEmail: string, targetPassword: string) {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/login')
+      .send({ email: targetEmail, password: targetPassword })
+      .expect(200);
+    return agent;
+  }
 
   function register(targetEmail: string, targetUsername: string, expected = 201) {
     return request(app.getHttpServer())
