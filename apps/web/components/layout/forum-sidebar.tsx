@@ -31,11 +31,11 @@ const technologyItems = TECHNICAL_CATEGORIES.map((category) => ({
 }));
 
 const personalItems = [
-  { label: '我的收藏', icon: Star, disabled: true },
+  { label: '我的收藏', href: '/me/bookmarks', icon: Star },
   { label: '我的点赞', icon: Heart, disabled: true },
   { label: '我的发布', href: '/posts/mine', icon: FileText },
   { label: '我的通知', href: '/notifications', icon: Bell },
-  { label: '浏览历史', icon: History, disabled: true },
+  { label: '浏览历史', href: '/me/history', icon: History },
   { label: '设置', icon: Settings, disabled: true },
 ] as const;
 

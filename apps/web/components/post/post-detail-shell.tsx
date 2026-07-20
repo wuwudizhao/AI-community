@@ -4,10 +4,12 @@ import { PostAside } from './post-aside';
 import { PostBreadcrumb } from './post-breadcrumb';
 import { PostContent } from './post-content';
 import { PostHeader } from './post-header';
+import { PostViewRecorder } from './post-view-recorder';
 
 export function PostDetailShell({ post }: { post: PostDetail }) {
   return (
     <div className="post-detail-frame">
+      <PostViewRecorder slug={post.slug} />
       <div className="post-detail-grid">
         <div className="post-detail-main">
           <PostBreadcrumb post={post} />

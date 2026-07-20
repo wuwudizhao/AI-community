@@ -14,6 +14,9 @@ export async function cleanTestUsers(prisma: PrismaService, emails: readonly str
     select: { id: true },
   });
   const postIds = posts.map(({ id }) => id);
+  await prisma.postLike.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.postBookmark.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.postViewHistory.deleteMany({ where: { userId: { in: userIds } } });
   const comments = await prisma.comment.findMany({
     where: {
       OR: [

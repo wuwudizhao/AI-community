@@ -23,7 +23,9 @@ const publicInclude = {
   author: { select: { id: true, username: true, displayName: true, bio: true } },
   anonymousAuthor: { select: { id: true, displayName: true } },
   tags: { include: { tag: true } },
-  _count: { select: { comments: { where: { status: 'PUBLISHED' as const } } } },
+  _count: {
+    select: { comments: { where: { status: 'PUBLISHED' as const } }, likes: true },
+  },
 } as const;
 
 @Injectable()
@@ -95,7 +97,7 @@ export class PostsService {
     }
   }
 
-  async list(query: PostsQueryDto) {
+  async list(query: PostsQueryDto, viewerId?: string) {
     const normalizedTag = query.tag ? normalizeTags([query.tag])[0] : undefined;
     const categoryValues = query.category ? categoryDatabaseValues(query.category) : undefined;
     const filters: Prisma.PostWhereInput[] = [];
@@ -127,8 +129,12 @@ export class PostsService {
       this.prisma.post.count({ where }),
     ]);
     assertPageExists(query, total);
+    const liked = await this.likedPostIds(
+      viewerId,
+      rows.map(({ id }) => id),
+    );
     return page(
-      rows.map((post) => mapPost(post, true)),
+      rows.map((post) => mapPost(post, true, liked.has(post.id))),
       query,
       total,
     );
@@ -147,8 +153,12 @@ export class PostsService {
       this.prisma.post.count({ where }),
     ]);
     assertPageExists(query, total);
+    const liked = await this.likedPostIds(
+      authorId,
+      rows.map(({ id }) => id),
+    );
     return page(
-      rows.map((post) => mapPost(post, true)),
+      rows.map((post) => mapPost(post, true, liked.has(post.id))),
       query,
       total,
     );
@@ -160,7 +170,150 @@ export class PostsService {
       include: publicInclude,
     });
     if (!post) throw new NotFoundException('帖子不存在');
-    return { ...mapPost(post, false), canDelete: this.deletion.canDelete(post, actor) };
+    const viewerId = actor?.type === 'user' ? actor.id : undefined;
+    const [like, bookmark] = viewerId
+      ? await this.prisma.$transaction([
+          this.prisma.postLike.findUnique({
+            where: { userId_postId: { userId: viewerId, postId: post.id } },
+            select: { id: true },
+          }),
+          this.prisma.postBookmark.findUnique({
+            where: { userId_postId: { userId: viewerId, postId: post.id } },
+            select: { id: true },
+          }),
+        ])
+      : [null, null];
+    return {
+      ...mapPost(post, false, Boolean(like)),
+      viewerHasBookmarked: Boolean(bookmark),
+      canDelete: this.deletion.canDelete(post, actor),
+    };
+  }
+
+  async setLike(userId: string, slug: string, liked: boolean) {
+    const post = await this.publishedPost(slug);
+    if (liked) {
+      await this.prisma.postLike.upsert({
+        where: { userId_postId: { userId, postId: post.id } },
+        create: { userId, postId: post.id },
+        update: {},
+      });
+    } else {
+      await this.prisma.postLike.deleteMany({ where: { userId, postId: post.id } });
+    }
+    return { liked, likeCount: await this.prisma.postLike.count({ where: { postId: post.id } }) };
+  }
+
+  async setBookmark(userId: string, slug: string, bookmarked: boolean) {
+    const post = await this.publishedPost(slug);
+    if (bookmarked) {
+      await this.prisma.postBookmark.upsert({
+        where: { userId_postId: { userId, postId: post.id } },
+        create: { userId, postId: post.id },
+        update: {},
+      });
+    } else {
+      await this.prisma.postBookmark.deleteMany({ where: { userId, postId: post.id } });
+    }
+    return { bookmarked };
+  }
+
+  async bookmarks(userId: string, query: PostsQueryDto) {
+    const where: Prisma.PostBookmarkWhereInput = { userId, post: { status: 'PUBLISHED' } };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.postBookmark.findMany({
+        where,
+        include: { post: { include: publicInclude } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      this.prisma.postBookmark.count({ where }),
+    ]);
+    assertPageExists(query, total);
+    const liked = await this.likedPostIds(
+      userId,
+      rows.map(({ postId }) => postId),
+    );
+    return page(
+      rows.map(({ post, createdAt }) => ({
+        ...mapPost(post, true, liked.has(post.id)),
+        bookmarkedAt: createdAt.toISOString(),
+      })),
+      query,
+      total,
+    );
+  }
+
+  async recordView(userId: string, slug: string) {
+    const post = await this.publishedPost(slug);
+    const viewed = await this.prisma.postViewHistory.upsert({
+      where: { userId_postId: { userId, postId: post.id } },
+      create: { userId, postId: post.id },
+      update: { lastViewedAt: new Date(), viewCount: { increment: 1 } },
+      select: { lastViewedAt: true, viewCount: true },
+    });
+    return {
+      recorded: true,
+      lastViewedAt: viewed.lastViewedAt.toISOString(),
+      viewCount: viewed.viewCount,
+    };
+  }
+
+  async history(userId: string, query: PostsQueryDto) {
+    const where: Prisma.PostViewHistoryWhereInput = { userId, post: { status: 'PUBLISHED' } };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.postViewHistory.findMany({
+        where,
+        include: { post: { include: publicInclude } },
+        orderBy: [{ lastViewedAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      this.prisma.postViewHistory.count({ where }),
+    ]);
+    assertPageExists(query, total);
+    const liked = await this.likedPostIds(
+      userId,
+      rows.map(({ postId }) => postId),
+    );
+    return page(
+      rows.map(({ post, lastViewedAt, viewCount }) => ({
+        ...mapPost(post, true, liked.has(post.id)),
+        lastViewedAt: lastViewedAt.toISOString(),
+        viewCount,
+      })),
+      query,
+      total,
+    );
+  }
+
+  async removeHistory(userId: string, postId: string) {
+    await this.prisma.postViewHistory.deleteMany({ where: { userId, postId } });
+    return { success: true };
+  }
+
+  async clearHistory(userId: string) {
+    const { count } = await this.prisma.postViewHistory.deleteMany({ where: { userId } });
+    return { success: true, deletedCount: count };
+  }
+
+  private async publishedPost(slug: string) {
+    const post = await this.prisma.post.findFirst({
+      where: { slug, status: 'PUBLISHED' },
+      select: { id: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    return post;
+  }
+
+  private async likedPostIds(userId: string | undefined, postIds: string[]) {
+    if (!userId || postIds.length === 0) return new Set<string>();
+    const rows = await this.prisma.postLike.findMany({
+      where: { userId, postId: { in: postIds } },
+      select: { postId: true },
+    });
+    return new Set(rows.map(({ postId }) => postId));
   }
 }
 
@@ -193,7 +346,7 @@ function postContentErrorMessage(error: PostContentError): string {
 
 type IncludedPost = Prisma.PostGetPayload<{ include: typeof publicInclude }>;
 
-function mapPost(post: IncludedPost, summary: boolean) {
+function mapPost(post: IncludedPost, summary: boolean, viewerHasLiked = false) {
   const category = findForumCategoryByValue(post.category);
   if (!category) throw new Error(`Unknown post category: ${post.category}`);
   return {
@@ -212,6 +365,8 @@ function mapPost(post: IncludedPost, summary: boolean) {
     updatedAt: post.updatedAt.toISOString(),
     publishedAt: post.publishedAt?.toISOString() ?? null,
     commentCount: post._count.comments,
+    likeCount: post._count.likes,
+    viewerHasLiked,
   };
 }
 

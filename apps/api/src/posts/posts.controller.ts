@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -59,14 +60,69 @@ export class PostsController {
   }
 
   @Get()
-  list(@Query() query: PostsQueryDto) {
-    return this.posts.list(query);
+  @UseGuards(OptionalSessionAuthGuard)
+  list(@Query() query: PostsQueryDto, @Req() request: OptionalAuthenticatedRequest) {
+    return this.posts.list(query, request.user?.id);
   }
 
   @Get('mine')
   @UseGuards(SessionAuthGuard)
   mine(@Req() request: AuthenticatedRequest, @Query() query: PostsQueryDto) {
     return this.posts.mine(request.user.id, query);
+  }
+
+  @Get('bookmarks')
+  @UseGuards(SessionAuthGuard)
+  bookmarks(@Req() request: AuthenticatedRequest, @Query() query: PostsQueryDto) {
+    return this.posts.bookmarks(request.user.id, query);
+  }
+
+  @Get('history')
+  @UseGuards(SessionAuthGuard)
+  history(@Req() request: AuthenticatedRequest, @Query() query: PostsQueryDto) {
+    return this.posts.history(request.user.id, query);
+  }
+
+  @Delete('history')
+  @UseGuards(SessionAuthGuard)
+  clearHistory(@Req() request: AuthenticatedRequest) {
+    return this.posts.clearHistory(request.user.id);
+  }
+
+  @Delete('history/:postId')
+  @UseGuards(SessionAuthGuard)
+  removeHistory(@Req() request: AuthenticatedRequest, @Param('postId') postId: string) {
+    return this.posts.removeHistory(request.user.id, postId);
+  }
+
+  @Put(':slug/like')
+  @UseGuards(SessionAuthGuard)
+  like(@Req() request: AuthenticatedRequest, @Param('slug') slug: string) {
+    return this.posts.setLike(request.user.id, slug, true);
+  }
+
+  @Delete(':slug/like')
+  @UseGuards(SessionAuthGuard)
+  unlike(@Req() request: AuthenticatedRequest, @Param('slug') slug: string) {
+    return this.posts.setLike(request.user.id, slug, false);
+  }
+
+  @Put(':slug/bookmark')
+  @UseGuards(SessionAuthGuard)
+  bookmark(@Req() request: AuthenticatedRequest, @Param('slug') slug: string) {
+    return this.posts.setBookmark(request.user.id, slug, true);
+  }
+
+  @Delete(':slug/bookmark')
+  @UseGuards(SessionAuthGuard)
+  unbookmark(@Req() request: AuthenticatedRequest, @Param('slug') slug: string) {
+    return this.posts.setBookmark(request.user.id, slug, false);
+  }
+
+  @Post(':slug/view-history')
+  @UseGuards(SessionAuthGuard)
+  recordView(@Req() request: AuthenticatedRequest, @Param('slug') slug: string) {
+    return this.posts.recordView(request.user.id, slug);
   }
 
   @Delete(':slug')

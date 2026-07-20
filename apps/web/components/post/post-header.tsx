@@ -38,6 +38,9 @@ export function PostHeader({ post }: { post: PostDetail }) {
           commentCount={post.commentCount}
           slug={post.slug}
           canDelete={post.canDelete}
+          initialLiked={post.viewerHasLiked ?? false}
+          initialLikeCount={post.likeCount ?? 0}
+          initialBookmarked={post.viewerHasBookmarked ?? false}
         />
       </div>
     </header>

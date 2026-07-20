@@ -217,14 +217,10 @@ describe('Comments and notifications (e2e, PostgreSQL)', () => {
 
   async function account(email: string, username: string) {
     const password = 'StrongPass123';
-    const registration = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post('/api/auth/register')
       .send({ email, username, displayName: username, password })
       .expect(201);
-    const token = new URL(registration.body.developmentPreviewUrl as string).searchParams.get(
-      'token',
-    );
-    await request(app.getHttpServer()).post('/api/auth/verify-email').send({ token }).expect(201);
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email, password })

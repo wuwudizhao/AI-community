@@ -7,6 +7,7 @@ import { PixelCoinIcon } from './pixel-coin-icon';
 import { PixelProjectAnalysisIcon } from './pixel-project-analysis-icon';
 import { TagBadge } from './tag-badge';
 import { TimeLabel } from './time-label';
+import { PostInteractionButtons } from '@/components/post/post-interaction-buttons';
 
 export function PostCard({ post }: { post: PostSummary }) {
   const category = findForumCategoryByKey(post.category.key);
@@ -54,9 +55,17 @@ export function PostCard({ post }: { post: PostSummary }) {
           <TimeLabel value={post.publishedAt} />
         </footer>
       </div>
-      <span className="forum-post-card__comment-count" aria-label={`${post.commentCount} 条评论`}>
-        <MessageCircle size={15} aria-hidden="true" />
-        {post.commentCount}
+      <span className="forum-post-card__metrics">
+        <PostInteractionButtons
+          slug={post.slug}
+          initialLiked={post.viewerHasLiked ?? false}
+          initialLikeCount={post.likeCount ?? 0}
+          showBookmark={false}
+        />
+        <span className="forum-post-card__comment-count" aria-label={`${post.commentCount} 条评论`}>
+          <MessageCircle size={15} aria-hidden="true" />
+          {post.commentCount}
+        </span>
       </span>
     </article>
   );

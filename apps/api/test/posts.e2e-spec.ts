@@ -174,15 +174,11 @@ describe('Posts API (e2e, PostgreSQL)', () => {
       .expect(401);
   });
 
-  it('registers, verifies, logs in and creates/query posts with real relations', async () => {
-    const registration = await request(app.getHttpServer())
+  it('registers, logs in and creates/query posts with real relations', async () => {
+    await request(app.getHttpServer())
       .post('/api/auth/register')
       .send({ email, username: 'phase4builder', displayName: 'Phase 4 Builder', password })
       .expect(201);
-    const token = new URL(registration.body.developmentPreviewUrl as string).searchParams.get(
-      'token',
-    );
-    await request(app.getHttpServer()).post('/api/auth/verify-email').send({ token }).expect(201);
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email, password })

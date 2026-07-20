@@ -34,10 +34,20 @@ export interface PostSummary {
   updatedAt: string;
   publishedAt: string | null;
   commentCount: number;
+  likeCount?: number;
+  viewerHasLiked?: boolean;
 }
 export interface PostDetail extends Omit<PostSummary, 'excerpt'> {
   contentMarkdown: string;
   canDelete: boolean;
+  viewerHasBookmarked?: boolean;
+}
+export interface BookmarkedPost extends PostSummary {
+  bookmarkedAt: string;
+}
+export interface ViewedPost extends PostSummary {
+  lastViewedAt: string;
+  viewCount: number;
 }
 export interface PostsPage {
   items: PostSummary[];
@@ -49,5 +59,11 @@ export interface PostsPage {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
   };
+}
+export interface BookmarksPage extends Omit<PostsPage, 'items'> {
+  items: BookmarkedPost[];
+}
+export interface HistoryPage extends Omit<PostsPage, 'items'> {
+  items: ViewedPost[];
 }
 import type { ForumCategoryKey } from '@liftoff/shared-types';

@@ -4,17 +4,24 @@ import { useState } from 'react';
 import { Check, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react';
 import { Dropdown } from '@/components/ui/dropdown';
 import { PostDeleteControl } from './post-delete-control';
+import { PostInteractionButtons } from './post-interaction-buttons';
 
 export function PostHeaderActions({
   title,
   commentCount,
   slug,
   canDelete,
+  initialLiked,
+  initialLikeCount,
+  initialBookmarked,
 }: {
   title: string;
   commentCount: number;
   slug: string;
   canDelete: boolean;
+  initialLiked: boolean;
+  initialLikeCount: number;
+  initialBookmarked: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -38,6 +45,12 @@ export function PostHeaderActions({
 
   return (
     <div className="post-header-actions" aria-label="帖子操作">
+      <PostInteractionButtons
+        slug={slug}
+        initialLiked={initialLiked}
+        initialLikeCount={initialLikeCount}
+        initialBookmarked={initialBookmarked}
+      />
       <button type="button" onClick={() => void share()}>
         {copied ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
         {copied ? '已复制' : '分享'}

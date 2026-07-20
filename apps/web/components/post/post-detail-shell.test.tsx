@@ -53,7 +53,7 @@ describe('PostDetailShell', () => {
   it('does not expose unimplemented reputation or engagement statistics', () => {
     render(<PostDetailShell post={post} />);
 
-    expect(screen.queryByText(/等级|粉丝|浏览量|点赞|收藏/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/等级|粉丝|公开浏览量/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /关注/ })).not.toBeInTheDocument();
   });
 
