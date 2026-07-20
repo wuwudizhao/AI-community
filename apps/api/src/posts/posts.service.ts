@@ -245,6 +245,29 @@ export class PostsService {
     );
   }
 
+  async likes(userId: string, query: PostsQueryDto) {
+    const where: Prisma.PostLikeWhereInput = { userId, post: { status: 'PUBLISHED' } };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.postLike.findMany({
+        where,
+        include: { post: { include: publicInclude } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      this.prisma.postLike.count({ where }),
+    ]);
+    assertPageExists(query, total);
+    return page(
+      rows.map(({ post, createdAt }) => ({
+        ...mapPost(post, true, true),
+        likedAt: createdAt.toISOString(),
+      })),
+      query,
+      total,
+    );
+  }
+
   async recordView(userId: string, slug: string) {
     const post = await this.publishedPost(slug);
     const viewed = await this.prisma.postViewHistory.upsert({

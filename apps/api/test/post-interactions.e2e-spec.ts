@@ -10,11 +10,15 @@ import { cleanTestUsers } from './e2e-cleanup';
 
 describe('Post interactions (e2e, PostgreSQL)', () => {
   const email = 'e2e-post-interactions@example.test';
+  const secondEmail = 'e2e-post-interactions-second@example.test';
   const protectedEmail = 'e2e-post-interactions-protected@example.test';
   const secret = 'post-interactions-session-secret-long-enough';
+  const secondSecret = 'post-interactions-second-session-secret-long-enough';
   let app: Awaited<ReturnType<typeof createApp>>;
   let prisma: PrismaService;
   let cookie: string;
+  let secondCookie: string;
+  let userId: string;
   let slug: string;
   let postId: string;
 
@@ -30,7 +34,7 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
     });
     app = await createApp();
     prisma = app.get(PrismaService);
-    await cleanTestUsers(prisma, [email]);
+    await cleanTestUsers(prisma, [email, secondEmail]);
     const user = await prisma.user.create({
       data: {
         email,
@@ -42,6 +46,7 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
         emailVerifiedAt: new Date(),
       },
     });
+    userId = user.id;
     await prisma.userSession.create({
       data: {
         userId: user.id,
@@ -50,6 +55,25 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
       },
     });
     cookie = `liftoff_session=${secret}`;
+    const secondUser = await prisma.user.create({
+      data: {
+        email: secondEmail,
+        emailNormalized: secondEmail,
+        username: 'e2epostinteractionssecond',
+        displayName: 'Second Interaction Tester',
+        passwordHash: 'not-used',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+      },
+    });
+    await prisma.userSession.create({
+      data: {
+        userId: secondUser.id,
+        tokenHash: hashSecret(secondSecret),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    secondCookie = `liftoff_session=${secondSecret}`;
     const created = await request(app.getHttpServer())
       .post('/api/posts')
       .set('Cookie', cookie)
@@ -64,7 +88,7 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
   });
 
   afterAll(async () => {
-    await cleanTestUsers(prisma, [email]);
+    await cleanTestUsers(prisma, [email, secondEmail]);
     await app.close();
   });
 
@@ -73,6 +97,7 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
     await request(app.getHttpServer()).put(`/api/posts/${slug}/bookmark`).expect(401);
     await request(app.getHttpServer()).post(`/api/posts/${slug}/view-history`).expect(401);
     await request(app.getHttpServer()).get('/api/posts/bookmarks').expect(401);
+    await request(app.getHttpServer()).get('/api/posts/likes').expect(401);
     await request(app.getHttpServer()).get('/api/posts/history').expect(401);
   });
 
@@ -101,11 +126,92 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
       likeCount: 1,
       viewerHasLiked: true,
     });
+    const likedPosts = await request(app.getHttpServer())
+      .get('/api/posts/likes?page=1&pageSize=20')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(likedPosts.body.pagination.totalItems).toBe(1);
+    expect(likedPosts.body.items[0]).toMatchObject({
+      id: postId,
+      slug,
+      likeCount: 1,
+      viewerHasLiked: true,
+    });
+    expect(likedPosts.body.items[0].likedAt).toEqual(expect.any(String));
+    const otherUsersLikedPosts = await request(app.getHttpServer())
+      .get('/api/posts/likes?page=1&pageSize=20')
+      .set('Cookie', secondCookie)
+      .expect(200);
+    expect(otherUsersLikedPosts.body.pagination.totalItems).toBe(0);
+    expect(otherUsersLikedPosts.body.items).toEqual([]);
     await request(app.getHttpServer())
       .delete(`/api/posts/${slug}/like`)
       .set('Cookie', cookie)
       .expect(200)
       .expect({ liked: false, likeCount: 0 });
+    const emptyLikedPosts = await request(app.getHttpServer())
+      .get('/api/posts/likes?page=1&pageSize=20')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(emptyLikedPosts.body.pagination.totalItems).toBe(0);
+    expect(emptyLikedPosts.body.items).toEqual([]);
+  });
+
+  it('paginates liked posts by most recent like time', async () => {
+    const olderPost = await prisma.post.create({
+      data: {
+        title: 'Older liked post',
+        slug: 'e2e-older-liked-post',
+        contentMarkdown: 'Older liked post body',
+        category: 'AGENT',
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        authorId: userId,
+      },
+    });
+    const newerPost = await prisma.post.create({
+      data: {
+        title: 'Newer liked post',
+        slug: 'e2e-newer-liked-post',
+        contentMarkdown: 'Newer liked post body',
+        category: 'AGENT',
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        authorId: userId,
+      },
+    });
+    await prisma.postLike.createMany({
+      data: [
+        { userId, postId: olderPost.id, createdAt: new Date('2026-07-20T01:00:00.000Z') },
+        { userId, postId: newerPost.id, createdAt: new Date('2026-07-20T02:00:00.000Z') },
+      ],
+    });
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/posts/likes?page=1&pageSize=1')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(firstPage.body.pagination).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      totalItems: 2,
+      totalPages: 2,
+      hasNextPage: true,
+    });
+    expect(firstPage.body.items[0].id).toBe(newerPost.id);
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/api/posts/likes?page=2&pageSize=1')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(secondPage.body.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      totalItems: 2,
+      totalPages: 2,
+      hasPreviousPage: true,
+    });
+    expect(secondPage.body.items[0].id).toBe(olderPost.id);
   });
 
   it('bookmarks idempotently and lists only visible posts by bookmark time', async () => {
@@ -203,7 +309,7 @@ describe('Post interactions (e2e, PostgreSQL)', () => {
         passwordHash: 'not-used',
       },
     });
-    await cleanTestUsers(prisma, [email]);
+    await cleanTestUsers(prisma, [email, secondEmail]);
     await expect(
       prisma.user.findUnique({ where: { id: protectedUser.id } }),
     ).resolves.not.toBeNull();

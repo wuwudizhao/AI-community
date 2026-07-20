@@ -77,6 +77,12 @@ export class PostsController {
     return this.posts.bookmarks(request.user.id, query);
   }
 
+  @Get('likes')
+  @UseGuards(SessionAuthGuard)
+  likes(@Req() request: AuthenticatedRequest, @Query() query: PostsQueryDto) {
+    return this.posts.likes(request.user.id, query);
+  }
+
   @Get('history')
   @UseGuards(SessionAuthGuard)
   history(@Req() request: AuthenticatedRequest, @Query() query: PostsQueryDto) {

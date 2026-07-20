@@ -19,8 +19,9 @@ describe('ForumSidebar', () => {
       '/notifications',
     );
     expect(screen.getByRole('link', { name: '我的收藏' })).toHaveAttribute('href', '/me/bookmarks');
+    expect(screen.getByRole('link', { name: '我的点赞' })).toHaveAttribute('href', '/me/likes');
     expect(screen.getByRole('link', { name: '浏览历史' })).toHaveAttribute('href', '/me/history');
-    expect(screen.getByText('我的点赞').closest('[aria-disabled="true"]')).toBeInTheDocument();
+    expect(screen.getByText('设置').closest('[aria-disabled="true"]')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /发布帖子/ })).toHaveAttribute('href', '/posts/new');
   });
 
@@ -28,6 +29,13 @@ describe('ForumSidebar', () => {
     navigation.pathname = '/me/bookmarks';
     render(<ForumSidebar />);
     expect(screen.getByRole('link', { name: '我的收藏' })).toHaveClass('is-active');
+    navigation.pathname = '/';
+  });
+
+  it('highlights the likes route', () => {
+    navigation.pathname = '/me/likes';
+    render(<ForumSidebar />);
+    expect(screen.getByRole('link', { name: '我的点赞' })).toHaveClass('is-active');
     navigation.pathname = '/';
   });
 });

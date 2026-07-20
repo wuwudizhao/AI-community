@@ -45,6 +45,9 @@ export interface PostDetail extends Omit<PostSummary, 'excerpt'> {
 export interface BookmarkedPost extends PostSummary {
   bookmarkedAt: string;
 }
+export interface LikedPost extends PostSummary {
+  likedAt: string;
+}
 export interface ViewedPost extends PostSummary {
   lastViewedAt: string;
   viewCount: number;
@@ -62,6 +65,9 @@ export interface PostsPage {
 }
 export interface BookmarksPage extends Omit<PostsPage, 'items'> {
   items: BookmarkedPost[];
+}
+export interface LikesPage extends Omit<PostsPage, 'items'> {
+  items: LikedPost[];
 }
 export interface HistoryPage extends Omit<PostsPage, 'items'> {
   items: ViewedPost[];
